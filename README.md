@@ -71,6 +71,14 @@ reading and/or your **whole vault** (RAG), plus one-tap **page summarisation**.
 Works with **Anthropic**, **OpenAI**, **Ollama** (local), **Ollama Cloud**, or
 any **OpenAI-compatible** server. API keys live in the **OS Keychain**.
 
+### ☁️ Cloud sync (optional)
+
+Keep working entirely local, or connect Narrative to a self-hostable
+**[Stohr](https://github.com/wess/stohr)** instance — cloud storage with a
+federation layer — and edit your hosted files right alongside your local
+pages. Sign in with a password (2FA supported) or a personal access token;
+the token lives in your OS keychain.
+
 ### 🔌 MCP server & plugins
 
 A standalone **Model Context Protocol** server lets Claude Desktop, Cursor, or
@@ -111,6 +119,7 @@ distribution guide.
 | [Linking & the graph](docs/linking.md) | Wiki links, backlinks, hover previews |
 | [Search & organisation](docs/search.md) | Operators, tags, daily notes, templates |
 | [AI assistant](docs/ai.md) | Providers, RAG, the semantic index |
+| [Connecting to Stohr](docs/stohr.md) | Optional self-hostable cloud storage |
 | [MCP server](docs/mcp.md) | Exposing your vault to AI clients |
 | [Plugins](docs/plugins.md) | Installing and writing plugins |
 | [Keyboard shortcuts](docs/shortcuts.md) | The full shortcut reference |

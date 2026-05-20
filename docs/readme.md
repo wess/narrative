@@ -19,6 +19,7 @@ at a time.
 | [Linking & the graph](linking.md) | Wiki links, backlinks, hover previews, the graph |
 | [Search & organisation](search.md) | Search operators, tags, daily notes, templates |
 | [AI assistant](ai.md) | Connecting a provider, RAG, the semantic index |
+| [Connecting to Stohr](stohr.md) | Optional self-hostable cloud storage |
 | [MCP server](mcp.md) | Exposing your vault to Claude Desktop, Cursor, and others |
 | [Plugins](plugins.md) | Installing, managing, and writing plugins |
 | [Keyboard shortcuts](shortcuts.md) | The complete shortcut reference |

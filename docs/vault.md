@@ -89,13 +89,20 @@ a vault never adds or changes files.
 ## Optional cloud sync (Stohr)
 
 Narrative can connect to a [Stohr](https://github.com/wess/stohr) instance —
-self-hostable cloud storage — from **Settings**. This is optional: a vault is
-fully functional as a local folder, and the simplest way to sync is still to
-keep the folder in git or any file-sync service.
+self-hostable cloud storage with a federation layer — and act as its companion
+editor, with your Stohr files showing up in the sidebar. You connect from
+**Settings → Stohr** using either an email + password sign-in (with two-factor
+support) or a pasted personal access token; the token is kept in the OS
+keychain.
+
+This is entirely optional. A vault is fully functional as a plain local folder,
+and the simplest way to sync is still to keep the folder in git or any
+file-sync service. See **[Connecting to Stohr](stohr.md)** for the full guide.
 
 ## Next
 
 - **[The editor](editor.md)** — writing pages.
 - **[Search & organisation](search.md)** — folders, tags, daily notes.
+- **[Connecting to Stohr](stohr.md)** — optional hosted storage.
 - **[Tutorial: Getting started](tutorial/gettingstarted.md)** — open your first
   vault step by step.
