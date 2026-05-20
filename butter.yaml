@@ -1,0 +1,14 @@
+window:
+  title: "Narrative"
+  width: 1340
+  height: 860
+  minWidth: 760
+  minHeight: 480
+
+build:
+  entry: src/app/index.html
+  host: src/host/index.ts
+
+bundle:
+  identifier: io.wess.narrative
+  category: public.app-category.productivity

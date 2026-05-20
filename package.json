@@ -1,0 +1,44 @@
+{
+  "name": "narrative",
+  "module": "src/host/index.ts",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "basket/packages/*"
+  ],
+  "dependencies": {
+    "@basket/ai": "workspace:*",
+    "@basket/config": "workspace:*",
+    "@basket/db": "workspace:*",
+    "@basket/dialog": "workspace:*",
+    "@basket/ipc": "workspace:*",
+    "@basket/mcp": "workspace:*",
+    "@basket/menu": "workspace:*",
+    "@basket/secrets": "workspace:*",
+    "@basket/store": "workspace:*",
+    "@basket/ui": "workspace:*",
+    "@basket/window": "workspace:*",
+    "@types/katex": "^0.16.8",
+    "butter": "file:./butter",
+    "katex": "^0.16.46",
+    "lucide-react": "^0.460.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.10",
+    "@types/bun": "latest",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "dev": "butter dev",
+    "build": "butter compile",
+    "bundle": "butter bundle",
+    "check": "bunx biome check src",
+    "tidy": "bunx biome check --write src",
+    "typecheck": "bunx tsc --noEmit"
+  }
+}
