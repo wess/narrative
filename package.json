@@ -1,5 +1,6 @@
 {
   "name": "narrative",
+  "version": "0.1.0",
   "module": "src/host/index.ts",
   "type": "module",
   "private": true,
