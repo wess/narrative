@@ -43,7 +43,8 @@ A block editor with a `/` slash menu, Markdown shortcuts (`# `, `- `, `> `, …)
 a selection toolbar, and drag-to-reorder blocks. Block types include text,
 H1–H3, bulleted / numbered / to-do lists, quotes, **callouts**, code, **math**
 (KaTeX), dividers, images, **tables**, **page embeds** (`![[Page]]`), and
-**page properties** (YAML front-matter).
+**page properties** (YAML front-matter). Paste an image straight into a page
+and it's saved into the vault as an **attachment**.
 
 ### 🔗 Linking & navigation
 
@@ -74,10 +75,11 @@ any **OpenAI-compatible** server. API keys live in the **OS Keychain**.
 ### ☁️ Cloud sync (optional)
 
 Keep working entirely local, or connect Narrative to a self-hostable
-**[Stohr](https://github.com/wess/stohr)** instance — cloud storage with a
-federation layer — and edit your hosted files right alongside your local
-pages. Sign in with a password (2FA supported) or a personal access token;
-the token lives in your OS keychain.
+**[Stohr](https://github.com/wess/stohr)** instance and your whole vault —
+every page and attachment — stays in **two-way sync** with your account:
+pushed and pulled on launch, on a timer, and on demand, with conflicting edits
+kept side by side rather than overwritten. Sign in with a password (2FA
+supported) or a personal access token; the token lives in your OS keychain.
 
 ### 🔌 MCP server & plugins
 
@@ -103,10 +105,13 @@ and **⌘K** to open the command palette.
 
 ```bash
 bun run build      # -> dist/narrative   single-file binary
-bun run bundle     # -> a macOS .app bundle
+bun run bundle     # -> a native app bundle (.app / .AppDir / .exe folder)
+bun run package    # -> a distributable installer (.dmg / .AppImage / setup.exe)
 ```
 
-See **[docs/building.md](docs/building.md)** for the full build and
+Narrative builds on **macOS, Linux, and Windows** — it uses each OS's own
+webview, so there's no bundled browser anywhere. See
+**[docs/building.md](docs/building.md)** for the full cross-platform build and
 distribution guide.
 
 ## Documentation

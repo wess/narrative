@@ -26,13 +26,6 @@
       "suspicious": {
         "noConsole": "off",
         "noExplicitAny": "warn"
-      },
-      "a11y": {
-        "useKeyWithClickEvents": "off",
-        "noStaticElementInteractions": "off",
-        "useSemanticElements": "off",
-        "useFocusableInteractive": "off",
-        "useAriaPropsForRole": "off"
       }
     }
   },

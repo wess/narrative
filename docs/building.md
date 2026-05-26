@@ -30,15 +30,17 @@ content to work with immediately.
 
 ## Quality checks
 
-Narrative's quality gate is type-checking and linting:
+Narrative's quality gate is type-checking, linting, and tests:
 
 ```bash
 bun run typecheck   # tsc --noEmit — full type check
 bun run check       # biome — lint + format check on src/
 bun run tidy        # biome — auto-fix what it can
+bun run test        # the test suite under test/
 ```
 
-Run `typecheck` and `check` before committing. Formatting is **Biome**:
+Run `typecheck`, `check`, and `test` before committing — the same three
+[CI](../.github/workflows/ci.yml) runs on every push. Formatting is **Biome**:
 2-space indent, 100-column lines, double quotes, semicolons, trailing commas.
 
 ## Building a binary
@@ -49,22 +51,66 @@ bun run build
 
 This runs `butter compile` and produces a **single-file binary** at
 `dist/narrative` — the whole app, bundled webview included, in one executable.
-It needs no separate runtime to run.
+It needs no separate runtime to run, and it targets whichever OS you build on.
 
-## Bundling for macOS
+## Bundling per platform
 
 ```bash
 bun run bundle
 ```
 
-This runs `butter bundle` and produces a macOS **`.app` bundle**. The bundle's
-identity comes from `butter.yaml`:
+This runs `butter bundle` and wraps the compiled binary in a native
+application package for the OS you're on:
+
+| Platform | `bun run bundle` produces |
+|---|---|
+| macOS | `dist/Narrative.app` — an `.app` bundle with `Info.plist` |
+| Linux | `dist/Narrative.AppDir` — an AppDir with a `.desktop` file |
+| Windows | `dist/Narrative/` — a folder with `Narrative.exe` |
+
+The bundle's identity comes from `butter.yaml`:
 
 ```yaml
 bundle:
   identifier: io.wess.narrative
   category: public.app-category.productivity
 ```
+
+## Packaging an installer
+
+```bash
+bun run package
+```
+
+This runs `butter package`, which turns the bundle into a distributable
+artifact:
+
+| Platform | `bun run package` produces |
+|---|---|
+| macOS | a disk image / installer from the `.app` |
+| Linux | `dist/Narrative-x86_64.AppImage` (`appimagetool` is fetched automatically) |
+| Windows | `dist/Narrative-setup.exe` if NSIS is installed, otherwise a portable `.zip` |
+
+## Cross-platform builds
+
+Narrative builds on **macOS, Linux, and Windows** — the native webview is the
+OS's own (WKWebView, WebKitGTK, WebView2), so there's no bundled browser on
+any platform.
+
+`butter compile` accepts a `--target darwin|linux|windows` flag, but a real
+cross-compile needs the target platform's SDK and webview headers. In
+practice that means **building each platform's artifact on that platform**
+(or in a matching VM / CI runner). Each OS needs a C compiler and its webview
+development package — `butter doctor` checks for them and tells you what's
+missing:
+
+```bash
+bunx butter doctor
+```
+
+Linux additionally needs `libwebkit2gtk-4.1-dev` and `libgtk-3-dev`; Windows
+needs the WebView2 runtime and MSVC (or MinGW). See butter's own
+[CLI reference](../butter/docs/reference/cli.md) for the full matrix.
 
 ## App configuration
 

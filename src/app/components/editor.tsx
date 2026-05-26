@@ -41,6 +41,9 @@ export const Editor = () => {
   const [dragId, setDragId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [iconOpen, setIconOpen] = useState(false);
+  // The on-disk version of the page captured when it changed underneath
+  // unsaved local edits — non-null while the conflict banner is showing.
+  const [conflict, setConflict] = useState<{ body: string; title: string } | null>(null);
 
   const blocksRef = useRef<Block[]>([]);
   blocksRef.current = blocks;
@@ -50,9 +53,13 @@ export const Editor = () => {
   const pendingPatch = useRef<{ title?: string; body?: string }>({});
   // The last body string the editor is in sync with — set on page open and
   // on every local edit. When `activePage.body` differs from this, the change
-  // came from outside (the vault watcher caught an edit in another app), so
-  // the document is re-parsed to match the file on disk.
+  // came from outside (the vault watcher caught an edit in another app, or a
+  // Stohr sync pulled one).
   const lastBodyRef = useRef("");
+  // True while the editor holds edits not yet written to disk — decides
+  // whether an external change can be applied silently or must raise a
+  // conflict rather than overwrite unsaved work.
+  const dirtyRef = useRef(false);
 
   const clearFocus = useCallback(() => setPendingFocus(null), []);
 
@@ -80,7 +87,9 @@ export const Editor = () => {
     setBlocks(parseBlocks(activePage.body));
     setTitle(activePage.title);
     setIconOpen(false);
+    setConflict(null);
     lastBodyRef.current = activePage.body;
+    dirtyRef.current = false;
     const leavingId = activePage.id;
     return () => {
       if (saveTimer.current) {
@@ -93,13 +102,25 @@ export const Editor = () => {
     };
   }, [activePage?.id]);
 
-  // External-edit sync: when `activePage.body` changes for a reason that
-  // isn't a local edit (the vault watcher saw the file change in git or
-  // another editor…), re-parse so the editor reflects the file on disk.
+  // External-edit sync: `activePage.body` changed for a reason that isn't a
+  // local edit — the vault watcher saw the file change in git, another
+  // editor, or a Stohr sync. With no unsaved edits it's safe to re-parse to
+  // match disk; with unsaved edits, freeze the change and raise a conflict
+  // rather than silently clobber the user's work.
   // biome-ignore lint/correctness/useExhaustiveDependencies: react to the body string only
   useEffect(() => {
     if (!activePage) return;
     if (activePage.body === lastBodyRef.current) return;
+    if (dirtyRef.current) {
+      // Cancel the pending debounced save so it can't overwrite the external
+      // change before the user has decided.
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      setConflict({ body: activePage.body, title: activePage.title });
+      return;
+    }
     lastBodyRef.current = activePage.body;
     setBlocks(parseBlocks(activePage.body));
     setTitle(activePage.title);
@@ -112,12 +133,14 @@ export const Editor = () => {
       Object.assign(pendingPatch.current, patch);
       const id = pageIdRef.current;
       if (id === null) return;
+      dirtyRef.current = true;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         saveTimer.current = null;
         const p = pendingPatch.current;
         pendingPatch.current = {};
         if (pageIdRef.current === id && Object.keys(p).length > 0) {
+          dirtyRef.current = false;
           void actions.savePage({ id, ...p });
         }
       }, 500);
@@ -338,6 +361,20 @@ export const Editor = () => {
         });
       },
 
+      imageFromPaste: (id, src) => {
+        const list = blocksRef.current;
+        const idx = list.findIndex((b) => b.id === id);
+        if (idx < 0) return;
+        const image: Block = { id: newId(), type: "image", text: "", src, alt: "" };
+        const cur = list[idx];
+        // Pasted into an empty paragraph → replace it; otherwise insert after.
+        if (cur && cur.type === "paragraph" && cur.text === "") {
+          apply([...list.slice(0, idx), image, ...list.slice(idx + 1)]);
+        } else {
+          apply([...list.slice(0, idx + 1), image, ...list.slice(idx + 1)]);
+        }
+      },
+
       moveBy: (id, delta) => {
         const list = blocksRef.current;
         const idx = list.findIndex((b) => b.id === id);
@@ -355,6 +392,29 @@ export const Editor = () => {
 
     return { ops, save: queueSave };
   }, []);
+
+  // Conflict resolution. The editor froze an external change because there
+  // were unsaved local edits — keep ours (re-arm the save, overwriting disk)
+  // or take the disk copy (discarding the unsaved edits).
+  const keepMine = (): void => {
+    if (!conflict) return;
+    setConflict(null);
+    lastBodyRef.current = serializeBlocks(blocksRef.current);
+    save({ body: lastBodyRef.current, title });
+  };
+  const useDisk = (): void => {
+    if (!conflict) return;
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    pendingPatch.current = {};
+    dirtyRef.current = false;
+    lastBodyRef.current = conflict.body;
+    setBlocks(parseBlocks(conflict.body));
+    setTitle(conflict.title);
+    setConflict(null);
+  };
 
   const pageTitles = useMemo(() => flattenTree(tree).map((n) => n.title || "Untitled"), [tree]);
   const tagNames = useMemo(() => tags.map((t) => t.tag), [tags]);
@@ -399,8 +459,24 @@ export const Editor = () => {
 
   return (
     <div className="editor">
+      {conflict ? (
+        <div className="editor-conflict" role="alert">
+          <span className="editor-conflict-msg">
+            This page changed on disk while you had unsaved edits.
+          </span>
+          <div className="editor-conflict-actions">
+            <button type="button" className="editor-conflict-keep" onClick={keepMine}>
+              Keep my version
+            </button>
+            <button type="button" onClick={useDisk}>
+              Load from disk
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="editor-scroll">
         <article className="doc">
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: right-click menu host; the same page actions are reachable from the command palette */}
           <div
             className="doc-head"
             onContextMenu={(e) => {

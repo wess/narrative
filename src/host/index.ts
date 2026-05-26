@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { mkdir, readdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Provider } from "@basket/ai";
@@ -10,7 +11,20 @@ import { createStore } from "@basket/store";
 import { mainWindow } from "@basket/window";
 import * as ch from "../shared/channels.ts";
 import { PROVIDERS } from "../shared/providers.ts";
-import type { AiResult, SearchHit, VaultInfo } from "../shared/types.ts";
+import type { AiResult, SearchHit, StohrSyncResult, VaultInfo } from "../shared/types.ts";
+import {
+  createAgent,
+  createCommand,
+  deleteAgent,
+  deleteCommand,
+  listAgents,
+  listCommands,
+  readAgentSource,
+  readCommandSource,
+  runAgent,
+  saveAgent,
+  saveCommand,
+} from "./agents/index.ts";
 import { buildProvider, SYSTEM_PROMPT } from "./ai.ts";
 import menu from "./menu.ts";
 import * as repo from "./pages.ts";
@@ -22,9 +36,11 @@ import { runSearch } from "./search.ts";
 import { seedVault } from "./seed.ts";
 import { createSettings } from "./settings.ts";
 import { createStohr } from "./stohr/index.ts";
-import { dirExists } from "./vault/fileio.ts";
+import { listToolDefs } from "./tools/index.ts";
+import { dirExists, writeAttachment } from "./vault/fileio.ts";
 import { closeVault, currentVault, type OpenVault, openVault } from "./vault/index.ts";
 import { loadRecents } from "./vault/recents.ts";
+import { reconcilePaths } from "./vault/watch.ts";
 
 const config = defineConfig({ app: { name: "Narrative", id: "io.wess.narrative" } });
 const p = await ensurePaths(config.app);
@@ -36,6 +52,30 @@ const settings = createStore("settings", {
 
 const aiSettings = createSettings(settings, config.app.id ?? "io.wess.narrative");
 const stohr = createStohr(settings, config.app.id ?? "io.wess.narrative");
+
+// Reconcile the open vault with Stohr, then fold whatever changed on disk
+// into the index. A no-op when no vault is open or Stohr isn't connected, so
+// it's safe to fire on launch, on a vault switch, after connecting, and on a
+// timer. Failures are reported, never thrown.
+const runStohrSync = async (): Promise<StohrSyncResult> => {
+  const v = currentVault();
+  if (!v) {
+    return {
+      ok: false,
+      pulled: 0,
+      pushed: 0,
+      deleted: 0,
+      conflicts: [],
+      error: "No vault is open.",
+    };
+  }
+  const { result, changedPaths } = await stohr.sync(v);
+  if (changedPaths.length > 0) await reconcilePaths(v, changedPaths);
+  if (!result.ok && result.error && result.error !== "Not connected to Stohr.") {
+    console.error(`[Narrative] Stohr sync failed: ${result.error}`);
+  }
+  return result;
+};
 
 // --- vault selection ------------------------------------------------------
 // The vault is a folder of Markdown files. The recents list (a plain
@@ -61,6 +101,9 @@ const openByPath = async (root: string, announce: boolean): Promise<VaultInfo | 
     await recents.remember(vault.root, vault.name);
     const info: VaultInfo = { root: vault.root, name: vault.name };
     if (announce) emit(ch.vaultChanged, info);
+    // Pull in anything the connected Stohr account changed while this vault
+    // was closed (and push anything that changed locally).
+    void runStohrSync();
     return info;
   } catch (e) {
     console.error(`[Narrative] failed to open vault: ${root}`, e);
@@ -297,6 +340,34 @@ handle(ch.exportPage, ({ id }) =>
   ),
 );
 
+// --- attachments ----------------------------------------------------------
+// Pasted images become real files under the vault's `attachments/` folder.
+// The webview can't load a vault path itself, so it reads bytes back here.
+
+handle(ch.saveAttachment, ({ name, data }) =>
+  withVault<{ path: string | null }>(
+    async (v) => {
+      const bytes = new Uint8Array(Buffer.from(data, "base64"));
+      return { path: await writeAttachment(v.root, name, bytes) };
+    },
+    { path: null },
+  ),
+);
+
+handle(ch.readAttachment, ({ path }) =>
+  withVault<{ data: string; mime: string } | null>(async (v) => {
+    // Confine reads to the vault — a path must never climb out of it.
+    if (path.includes("..")) return null;
+    const file = Bun.file(join(v.root, path));
+    if (!(await file.exists())) return null;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    return {
+      data: Buffer.from(bytes).toString("base64"),
+      mime: file.type || "application/octet-stream",
+    };
+  }, null),
+);
+
 // --- settings + AI --------------------------------------------------------
 
 handle(ch.getSettings, () => aiSettings.read());
@@ -355,14 +426,30 @@ handle(ch.mcpConfig, () => ({
 // --- Stohr ----------------------------------------------------------------
 
 handle(ch.stohrStatus, () => stohr.status());
-handle(ch.stohrConnectToken, ({ baseURL, token }) => stohr.connectToken(baseURL, token));
-handle(ch.stohrConnectPassword, ({ baseURL, identity, password }) =>
-  stohr.connectPassword(baseURL, identity, password),
-);
-handle(ch.stohrConnectMfa, ({ baseURL, mfaToken, code }) =>
-  stohr.connectMfa(baseURL, mfaToken, code),
-);
+
+handle(ch.stohrConnectToken, async ({ baseURL, token }) => {
+  const result = await stohr.connectToken(baseURL, token);
+  if (result.ok) void runStohrSync(); // first sync as soon as we're connected
+  return result;
+});
+
+handle(ch.stohrConnectPassword, async ({ baseURL, identity, password }) => {
+  const result = await stohr.connectPassword(baseURL, identity, password);
+  if (result.ok) void runStohrSync();
+  return result;
+});
+
+handle(ch.stohrConnectMfa, async ({ baseURL, mfaToken, code }) => {
+  const result = await stohr.connectMfa(baseURL, mfaToken, code);
+  if (result.ok) void runStohrSync();
+  return result;
+});
+
 handle(ch.stohrDisconnect, () => stohr.disconnect());
+handle(ch.stohrSync, () => runStohrSync());
+
+// Keep a connected vault in step with Stohr in the background.
+setInterval(() => void runStohrSync(), 2 * 60 * 1000);
 
 // --- plugins --------------------------------------------------------------
 
@@ -395,61 +482,152 @@ handle(ch.aiCancel, ({ requestId }) => {
   aborts.delete(requestId);
 });
 
-handle(ch.aiChat, async ({ requestId, messages, pageId, useVault }): Promise<AiResult> => {
-  let provider: Provider;
-  try {
-    provider = await buildProvider(aiSettings);
-  } catch (e) {
-    return { ok: false, content: "", error: (e as Error).message };
-  }
+handle(
+  ch.aiChat,
+  async ({ requestId, messages, pageId, useVault, agentSlug }): Promise<AiResult> => {
+    const vault = currentVault();
 
-  const vault = currentVault();
-  let system = SYSTEM_PROMPT;
-  if (pageId !== undefined && vault) {
-    const page = repo.getPage(vault.db, pageId);
-    if (page) {
-      system += `\n\nThe user is currently viewing this page:\n\n# ${page.title}\n\n${page.body}`;
+    // Resolve the requested agent up front so we can honour its `provider` /
+    // `model` overrides when building the live provider for this turn.
+    const agents = vault ? await listAgents(vault.root) : [];
+    const agent = agentSlug ? (agents.find((a) => a.slug === agentSlug) ?? null) : null;
+
+    let provider: Provider;
+    try {
+      provider = await buildProvider(aiSettings, {
+        provider: agent?.provider ?? undefined,
+        model: agent?.model ?? undefined,
+      });
+    } catch (e) {
+      return { ok: false, content: "", error: (e as Error).message };
     }
-  }
 
-  // RAG: pull the most relevant pages for the latest question into context.
-  if (useVault && vault) {
-    const query = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
-    if (query) {
-      const { pages, mode } = await retrieveContext(vault.db, provider, query, 5);
-      if (pages.length > 0) {
-        emit(ch.aiSources, { requestId, mode, titles: pages.map((page) => page.title) });
-        system += `\n\nRelevant pages from the user's knowledge base (${mode} retrieval):\n\n${pages
-          .map((page) => `## ${page.title}\n\n${page.body}`)
-          .join("\n\n---\n\n")}`;
+    // Page context and RAG context are appended whether or not an agent is
+    // chosen — the chat surface controls those toggles independently.
+    let contextSystem = "";
+    if (pageId !== undefined && vault) {
+      const page = repo.getPage(vault.db, pageId);
+      if (page) {
+        contextSystem += `The user is currently viewing this page:\n\n# ${page.title}\n\n${page.body}`;
       }
     }
-  }
-
-  const controller = new AbortController();
-  aborts.set(requestId, controller);
-  let full = "";
-  try {
-    for await (const chunk of provider.chatStream({
-      messages,
-      system,
-      signal: controller.signal,
-    })) {
-      if (chunk.delta) {
-        full += chunk.delta;
-        emit(ch.aiChunk, { requestId, delta: chunk.delta, done: false });
+    if (useVault && vault) {
+      const query = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+      if (query) {
+        const { pages, mode } = await retrieveContext(vault.db, provider, query, 5);
+        if (pages.length > 0) {
+          emit(ch.aiSources, { requestId, mode, titles: pages.map((page) => page.title) });
+          contextSystem += `${contextSystem ? "\n\n" : ""}Relevant pages from the user's knowledge base (${mode} retrieval):\n\n${pages
+            .map((page) => `## ${page.title}\n\n${page.body}`)
+            .join("\n\n---\n\n")}`;
+        }
       }
-      if (chunk.done) break;
     }
-    emit(ch.aiChunk, { requestId, delta: "", done: true });
-    return { ok: true, content: full };
-  } catch (e) {
-    emit(ch.aiChunk, { requestId, delta: "", done: true });
-    return { ok: false, content: full, error: (e as Error).message };
-  } finally {
-    aborts.delete(requestId);
-  }
-});
+
+    const controller = new AbortController();
+    aborts.set(requestId, controller);
+    let full = "";
+    try {
+      // With an agent, run the streaming tool-call loop; without one, fall
+      // back to the original plain-chat stream so the assistant still works
+      // before the user has authored any agents.
+      if (agent && vault) {
+        return await runAgent({
+          provider,
+          ctx: {
+            vault,
+            provider,
+            requestId,
+            emitFocus: (id) => emit(ch.focusPage, { id }),
+          },
+          agent,
+          messages,
+          contextSystem,
+          signal: controller.signal,
+        });
+      }
+
+      const system = contextSystem ? `${SYSTEM_PROMPT}\n\n${contextSystem}` : SYSTEM_PROMPT;
+      for await (const chunk of provider.chatStream({
+        messages,
+        system,
+        signal: controller.signal,
+      })) {
+        if (chunk.delta) {
+          full += chunk.delta;
+          emit(ch.aiChunk, { requestId, delta: chunk.delta, done: false });
+        }
+        if (chunk.done) break;
+      }
+      emit(ch.aiChunk, { requestId, delta: "", done: true });
+      return { ok: true, content: full };
+    } catch (e) {
+      emit(ch.aiChunk, { requestId, delta: "", done: true });
+      return { ok: false, content: full, error: (e as Error).message };
+    } finally {
+      aborts.delete(requestId);
+    }
+  },
+);
+
+// --- agent IDE ------------------------------------------------------------
+// Native agents and commands live in `.narrative/agents/` and
+// `.narrative/commands/` inside the open vault — invisible to the page tree
+// (scanner ignores dotfolders), but they travel with the vault.
+
+handle(ch.agentList, () => withVault((v) => listAgents(v.root), []));
+handle(ch.commandList, () => withVault((v) => listCommands(v.root), []));
+handle(ch.toolList, () => listToolDefs());
+
+handle(ch.agentCreate, ({ name }) =>
+  withVault(async (v) => {
+    const agent = await createAgent(v.root, name);
+    if (agent) emit(ch.agentsChanged, undefined);
+    return agent;
+  }, null),
+);
+
+handle(ch.commandCreate, ({ name }) =>
+  withVault(async (v) => {
+    const command = await createCommand(v.root, name);
+    if (command) emit(ch.agentsChanged, undefined);
+    return command;
+  }, null),
+);
+
+handle(ch.agentSource, ({ slug }) => withVault((v) => readAgentSource(v.root, slug), null));
+
+handle(ch.commandSource, ({ slug }) => withVault((v) => readCommandSource(v.root, slug), null));
+
+handle(ch.agentSave, ({ slug, body }) =>
+  withVault(async (v) => {
+    const agent = await saveAgent(v.root, slug, body);
+    if (agent) emit(ch.agentsChanged, undefined);
+    return agent;
+  }, null),
+);
+
+handle(ch.commandSave, ({ slug, body }) =>
+  withVault(async (v) => {
+    const command = await saveCommand(v.root, slug, body);
+    if (command) emit(ch.agentsChanged, undefined);
+    return command;
+  }, null),
+);
+
+handle(ch.agentDelete, ({ slug }) =>
+  withVault(async (v) => {
+    await deleteAgent(v.root, slug);
+    emit(ch.agentsChanged, undefined);
+  }, undefined),
+);
+
+handle(ch.commandDelete, ({ slug }) =>
+  withVault(async (v) => {
+    await deleteCommand(v.root, slug);
+    emit(ch.agentsChanged, undefined);
+  }, undefined),
+);
 
 handle(ch.aiSummarize, async ({ pageId }): Promise<AiResult> => {
   const vault = currentVault();

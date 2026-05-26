@@ -38,8 +38,10 @@
     "dev": "butter dev",
     "build": "butter compile",
     "bundle": "butter bundle",
+    "package": "butter package",
     "check": "bunx biome check src",
     "tidy": "bunx biome check --write src",
-    "typecheck": "bunx tsc --noEmit"
+    "typecheck": "bunx tsc --noEmit",
+    "test": "bun test ./test"
   }
 }

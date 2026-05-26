@@ -572,12 +572,55 @@ textarea {
 .editor {
   flex: 1;
   display: flex;
+  flex-direction: column;
   min-width: 0;
   background: var(--bg);
 }
 .editor-scroll {
   flex: 1;
   overflow-y: auto;
+}
+
+/* External-edit conflict banner — shown when the open page changed on disk
+   while the editor held unsaved local edits. */
+.editor-conflict {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(245, 158, 11, 0.13);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.45);
+  font-size: 13px;
+  color: var(--fg);
+}
+.editor-conflict-msg {
+  flex: 1;
+}
+.editor-conflict-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.editor-conflict button {
+  padding: 4px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--fg);
+  font-size: 12px;
+  cursor: pointer;
+}
+.editor-conflict button:hover {
+  background: var(--bg-hover);
+}
+.editor-conflict-keep {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.editor-conflict-keep:hover {
+  background: var(--accent);
+  filter: brightness(1.07);
 }
 .doc {
   max-width: 760px;
@@ -850,15 +893,20 @@ textarea {
 }
 
 .block-divider {
+  display: block;
+  width: 100%;
   padding: 10px 0;
   outline: none;
   cursor: pointer;
-}
-.block-divider hr {
+  background: none;
   border: none;
+}
+.block-divider::after {
+  content: "";
+  display: block;
   border-top: 1px solid var(--border-strong);
 }
-.block-divider:focus hr {
+.block-divider:focus-visible::after {
   border-color: var(--accent);
 }
 
@@ -3481,4 +3529,438 @@ textarea {
   display: flex;
   align-items: center;
   gap: 2px;
+}
+
+/* --- agent IDE: picker, tool cards, command palette, agent editor ------- */
+
+.aichat-agent {
+  position: relative;
+}
+.aichat-agent-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.aichat-agent-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--fg);
+}
+.aichat-agent-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+.aichat-agent-label {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aichat-agent-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: 240px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.aichat-agent-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+.aichat-agent-opt:hover,
+.aichat-agent-opt[data-active="true"] {
+  background: var(--bg-hover);
+}
+.aichat-agent-opt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.aichat-agent-opt-name {
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--fg);
+}
+.aichat-agent-opt-desc {
+  font-size: 11px;
+  color: var(--fg-muted);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aichat-agent-opt-edit {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.aichat-agent-opt-edit:hover {
+  background: var(--bg);
+  color: var(--fg);
+}
+.aichat-agent-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 2px;
+}
+.aichat-agent-new {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 550;
+}
+.aichat-agent-new:hover {
+  background: var(--bg-hover);
+}
+
+.aichat-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.aichat-tool {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 11px;
+}
+.aichat-tool[data-status="error"] {
+  border-color: var(--danger, #e57373);
+}
+.aichat-tool-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  text-align: left;
+}
+.aichat-tool-head:hover {
+  color: var(--fg);
+}
+.aichat-tool-name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  flex: 1;
+  color: var(--fg);
+  font-weight: 550;
+}
+.aichat-tool-ok {
+  color: var(--success, #4caf85);
+}
+.aichat-tool-err {
+  color: var(--danger, #e57373);
+}
+.aichat-tool-spin {
+  animation: aichat-spin 0.9s linear infinite;
+}
+@keyframes aichat-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.aichat-tool-body {
+  border-top: 1px solid var(--border);
+  padding: 6px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.aichat-tool-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-faint);
+}
+.aichat-tool-pre {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+  color: var(--fg);
+}
+
+/* --- command palette ---------------------------------------------------- */
+
+.cmdpal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 14vh;
+}
+.cmdpal {
+  width: min(520px, 90vw);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cmdpal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.cmdpal-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--fg);
+  outline: none;
+}
+.cmdpal-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.cmdpal-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--fg-faint);
+}
+.cmdpal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.cmdpal-item[data-active="true"],
+.cmdpal-item:hover {
+  background: var(--bg-hover);
+}
+.cmdpal-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
+}
+.cmdpal-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cmdpal-name {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--fg);
+}
+.cmdpal-desc {
+  font-size: 11px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmdpal-tag {
+  font-size: 10px;
+  color: var(--fg-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.cmdpal-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+.cmdpal-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--accent);
+  cursor: pointer;
+}
+.cmdpal-new:hover {
+  border-color: var(--accent);
+}
+.cmdpal-hint {
+  margin-left: auto;
+}
+
+/* --- agent editor modal ------------------------------------------------- */
+
+.agentedit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6vh 24px;
+}
+.agentedit {
+  width: min(820px, 100%);
+  max-height: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.agentedit-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.agentedit-title {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--fg);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agentedit-title code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.agentedit-dirty {
+  color: var(--accent);
+  margin-left: 4px;
+}
+.agentedit-spacer {
+  flex: 1;
+}
+.agentedit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 550;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.agentedit-btn:hover {
+  border-color: var(--border-strong);
+}
+.agentedit-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.agentedit-del {
+  color: var(--danger, #e57373);
+}
+.agentedit-area {
+  flex: 1;
+  min-height: 360px;
+  resize: none;
+  border: 0;
+  padding: 14px 16px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  line-height: 1.6;
+  background: var(--bg);
+  color: var(--fg);
+  outline: none;
+  white-space: pre;
+  overflow: auto;
+}
+.agentedit-foot {
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--fg-faint);
+  line-height: 1.5;
+}
+.agentedit-foot code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  padding: 1px 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 10.5px;
 }

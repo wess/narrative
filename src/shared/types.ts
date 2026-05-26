@@ -128,11 +128,71 @@ export type ChatMessage = {
   readonly role: "user" | "assistant";
   readonly content: string;
   readonly sources?: readonly string[]; // page titles used as RAG context
+  readonly toolCalls?: readonly ToolCall[];
+  readonly agentSlug?: string; // which agent produced/ran this turn
 };
 
 export type AiResult = {
   readonly ok: boolean;
   readonly content: string;
+  readonly error?: string;
+  readonly toolCalls?: readonly ToolCall[];
+};
+
+// --- agent IDE ------------------------------------------------------------
+// Narrative is an Agent IDE: agents and commands live in the vault as plain
+// Markdown files with frontmatter, the host parses them, and the chat runs
+// a streaming loop that lets the model call vault tools via fenced blocks.
+
+// A tool the host exposes for agents to call. The `schema` is a small JSON
+// shape the model is asked to follow; we keep it as a string (TOML-ish hint)
+// so the system prompt stays readable.
+export type AgentToolDef = {
+  readonly name: string; // e.g. "vault.search"
+  readonly description: string; // one-liner
+  readonly usage: string; // JSON shape hint shown in the system prompt
+};
+
+// A native Narrative agent — `.narrative/agents/<slug>.md` with frontmatter.
+export type AgentDef = {
+  readonly slug: string; // file name without extension
+  readonly path: string; // vault-relative path to the source file
+  readonly name: string; // display name (frontmatter `name`)
+  readonly description: string;
+  readonly icon: string; // single emoji/glyph for the picker
+  readonly model: string | null; // overrides app default if set
+  readonly provider: AiProvider | null; // overrides app default if set
+  readonly tools: readonly string[]; // tool-name allowlist
+  readonly systemPrompt: string; // body, after frontmatter
+};
+
+// A reusable command — `.narrative/commands/<slug>.md`. Runs as a one-shot
+// agent turn. If `agent` is set, that agent's tools/model/prompt apply;
+// otherwise the command's own `tools`/`model` apply and the system prompt
+// is the default.
+export type CommandDef = {
+  readonly slug: string;
+  readonly path: string;
+  readonly name: string;
+  readonly description: string;
+  readonly icon: string;
+  readonly agent: string | null; // slug of an agent, or null
+  readonly tools: readonly string[];
+  readonly model: string | null;
+  readonly provider: AiProvider | null;
+  readonly prompt: string; // body — sent as the user turn
+};
+
+export type ToolCallStatus = "pending" | "ok" | "error";
+
+// One tool invocation inside an assistant turn. Streamed to the webview as
+// it transitions pending -> ok/error so the chat can render it live.
+export type ToolCall = {
+  readonly id: string;
+  readonly name: string;
+  readonly args: unknown;
+  readonly status: ToolCallStatus;
+  readonly result?: unknown;
   readonly error?: string;
 };
 
@@ -170,6 +230,19 @@ export type StohrConnectResult = {
   readonly mfaRequired: boolean;
   readonly mfaToken: string | null;
   readonly status: StohrStatus;
+  readonly error: string | null;
+};
+
+// The outcome of a vault sync — a two-way reconcile of the vault folder with
+// the connected Stohr account. `conflicts` lists vault-relative paths where
+// both sides changed (the remote copy is kept beside the local one) or that
+// failed to transfer.
+export type StohrSyncResult = {
+  readonly ok: boolean;
+  readonly pulled: number; // files downloaded from Stohr
+  readonly pushed: number; // files uploaded to Stohr
+  readonly deleted: number; // files removed on one side to match the other
+  readonly conflicts: readonly string[];
   readonly error: string | null;
 };
 

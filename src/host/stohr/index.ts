@@ -1,6 +1,12 @@
 import { createVault } from "@basket/secrets";
 import type { Store } from "@basket/store";
-import type { StohrAccount, StohrConnectResult, StohrStatus } from "../../shared/types.ts";
+import type {
+  StohrAccount,
+  StohrConnectResult,
+  StohrStatus,
+  StohrSyncResult,
+} from "../../shared/types.ts";
+import type { OpenVault } from "../vault/types.ts";
 import {
   type LoginResponse,
   normalizeBaseURL,
@@ -9,6 +15,7 @@ import {
   stohrMe,
   stohrUsage,
 } from "./client.ts";
+import { syncVault } from "./sync.ts";
 
 const DEFAULT_BASE_URL = "https://stohr.io/api";
 const TOKEN_KEY = "stohr.token";
@@ -25,6 +32,9 @@ export type StohrRepo = {
   ) => Promise<StohrConnectResult>;
   connectMfa: (baseURL: string, mfaToken: string, code: string) => Promise<StohrConnectResult>;
   disconnect: () => Promise<StohrStatus>;
+  // Two-way reconcile of the vault folder with Stohr. `changedPaths` is for
+  // the caller to hand to the index; `result` is the webview-facing summary.
+  sync: (vault: OpenVault) => Promise<{ result: StohrSyncResult; changedPaths: string[] }>;
 };
 
 // One Stohr connection per app. The bearer token lives in the OS keychain;
@@ -142,5 +152,40 @@ export const createStohr = (store: Store, appId: string): StohrRepo => {
     return disconnected();
   };
 
-  return { status, connectToken, connectPassword, connectMfa, disconnect };
+  // Only one sync at a time — overlapping reconciles against the same folder
+  // would race each other's writes.
+  let syncing = false;
+
+  const sync = async (
+    openVault: OpenVault,
+  ): Promise<{ result: StohrSyncResult; changedPaths: string[] }> => {
+    const failed = (error: string): { result: StohrSyncResult; changedPaths: string[] } => ({
+      result: { ok: false, pulled: 0, pushed: 0, deleted: 0, conflicts: [], error },
+      changedPaths: [],
+    });
+    const token = await vault.get(TOKEN_KEY);
+    if (!token) return failed("Not connected to Stohr.");
+    if (syncing) return failed("A sync is already running.");
+    syncing = true;
+    try {
+      const summary = await syncVault(openVault, baseURL(), token);
+      return {
+        result: {
+          ok: true,
+          pulled: summary.pulled,
+          pushed: summary.pushed,
+          deleted: summary.deleted,
+          conflicts: summary.conflicts,
+          error: null,
+        },
+        changedPaths: summary.changedPaths,
+      };
+    } catch (e) {
+      return failed((e as Error).message);
+    } finally {
+      syncing = false;
+    }
+  };
+
+  return { status, connectToken, connectPassword, connectMfa, disconnect, sync };
 };

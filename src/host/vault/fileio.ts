@@ -102,6 +102,30 @@ export const movePath = async (root: string, fromRel: string, toRel: string): Pr
   await rename(fromAbs, toAbs);
 };
 
+// Write a pasted image into the vault's `attachments/` folder under a free
+// name. Returns the vault-relative path to record in the page's Markdown.
+// Attachments aren't `.md`, so the watcher ignores them — no self-write mark.
+export const writeAttachment = async (
+  root: string,
+  name: string,
+  bytes: Uint8Array,
+): Promise<string> => {
+  const extMatch = /\.[a-z0-9]+$/i.exec(name);
+  const ext = extMatch ? extMatch[0].toLowerCase() : ".png";
+  const stem = name.slice(0, name.length - (extMatch?.[0]?.length ?? 0));
+  const base = stem.replace(/[\\/:*?"<>|]+/g, "-").trim() || "image";
+  let rel = `attachments/${base}${ext}`;
+  let n = 1;
+  while (await pathExists(join(root, rel))) {
+    rel = `attachments/${base} ${n}${ext}`;
+    n += 1;
+  }
+  const abs = join(root, rel);
+  await mkdir(dirname(abs), { recursive: true });
+  await Bun.write(abs, bytes);
+  return rel;
+};
+
 // Turn a desired path into a free one — "Notes/Idea.md" -> "Notes/Idea 1.md"
 // when taken. Works for both files (keeps the `.md`) and folders.
 export const uniqueRelPath = async (root: string, relPath: string): Promise<string> => {

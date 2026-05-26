@@ -81,3 +81,106 @@ export const stohrMe = (baseURL: string, token: string): Promise<StohrUser> =>
 
 export const stohrUsage = (baseURL: string, token: string): Promise<StohrUsageRaw> =>
   request<StohrUsageRaw>(baseURL, "/me/usage", { token });
+
+// --- files & folders ------------------------------------------------------
+// The slice of Stohr's storage API the vault sync needs: walk the folder
+// tree, transfer file bytes, and propagate deletes. Stohr versions files
+// implicitly — re-uploading the same name into the same folder archives the
+// prior version — so an upload doubles as both "create" and "update".
+
+export type StohrFolder = {
+  readonly id: string;
+  readonly name: string;
+  readonly parent_id: string | null;
+};
+
+export type StohrFile = {
+  readonly id: string;
+  readonly name: string;
+  readonly folder_id: string | null;
+  readonly size: number;
+  readonly version: number;
+};
+
+export const stohrListFolders = (
+  baseURL: string,
+  token: string,
+  parentId: string | null,
+): Promise<StohrFolder[]> =>
+  request<StohrFolder[]>(
+    baseURL,
+    parentId ? `/folders?parent_id=${encodeURIComponent(parentId)}` : "/folders",
+    { token },
+  );
+
+export const stohrCreateFolder = (
+  baseURL: string,
+  token: string,
+  name: string,
+  parentId: string | null,
+): Promise<StohrFolder> =>
+  request<StohrFolder>(baseURL, "/folders", {
+    method: "POST",
+    token,
+    body: { name, parent_id: parentId },
+  });
+
+export const stohrListFiles = (
+  baseURL: string,
+  token: string,
+  folderId: string,
+): Promise<StohrFile[]> =>
+  request<StohrFile[]>(baseURL, `/files?folder_id=${encodeURIComponent(folderId)}`, { token });
+
+export const stohrDeleteFile = (baseURL: string, token: string, fileId: string): Promise<unknown> =>
+  request(baseURL, `/files/${encodeURIComponent(fileId)}`, { method: "DELETE", token });
+
+// Download a file's bytes — a raw blob stream, not JSON.
+export const stohrDownloadFile = async (
+  baseURL: string,
+  token: string,
+  fileId: string,
+): Promise<Uint8Array> => {
+  const res = await fetch(
+    `${normalizeBaseURL(baseURL)}/files/${encodeURIComponent(fileId)}/download`,
+    { headers: { authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) throw new Error(`Stohr download failed (HTTP ${res.status})`);
+  return new Uint8Array(await res.arrayBuffer());
+};
+
+// Upload (or, for an existing name in the folder, version) a file. The body
+// is `multipart/form-data` — never set `content-type` by hand, `fetch` adds
+// the boundary.
+export const stohrUploadFile = async (
+  baseURL: string,
+  token: string,
+  folderId: string,
+  name: string,
+  bytes: ArrayBuffer,
+  mime: string,
+): Promise<StohrFile> => {
+  const form = new FormData();
+  form.append("file", new Blob([bytes], { type: mime }), name);
+  form.append("folder_id", folderId);
+  const res = await fetch(`${normalizeBaseURL(baseURL)}/files`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const text = await res.text();
+  let data: unknown = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  if (!res.ok) {
+    const msg =
+      data && typeof data === "object" && "error" in data
+        ? String((data as { error: unknown }).error)
+        : `Stohr upload failed (HTTP ${res.status})`;
+    throw new Error(msg);
+  }
+  return data as StohrFile;
+};

@@ -1,10 +1,13 @@
 import { useSyncExternalStore } from "react";
 import type {
+  AgentDef,
+  AgentToolDef,
   AiConfig,
   AppStats,
   Backlink,
   Backlinks,
   ChatMessage,
+  CommandDef,
   EmbedStatus,
   GraphData,
   Page,
@@ -27,6 +30,17 @@ export type ChatState = {
   readonly requestId: string | null;
   readonly useContext: boolean;
   readonly useVault: boolean;
+  // Slug of the active agent, or null to use the plain assistant.
+  readonly agentSlug: string | null;
+};
+
+export type AgentEditorState = {
+  readonly open: boolean;
+  readonly kind: "agent" | "command";
+  readonly slug: string | null;
+  readonly path: string;
+  readonly body: string;
+  readonly dirty: boolean;
 };
 
 export type AppState = {
@@ -71,6 +85,11 @@ export type AppState = {
   readonly mcpConfig: { command: string; args: readonly string[] } | null;
   readonly stohr: StohrStatus | null;
   readonly chat: ChatState;
+  readonly agents: readonly AgentDef[];
+  readonly commands: readonly CommandDef[];
+  readonly toolDefs: readonly AgentToolDef[];
+  readonly agentEditor: AgentEditorState | null;
+  readonly commandPaletteOpen: boolean;
 };
 
 // --- persisted UI preferences (webview-local, no IPC needed) ---------------
@@ -136,7 +155,13 @@ const initial: AppState = {
     requestId: null,
     useContext: true,
     useVault: readPref<boolean>("aiUseVault", false),
+    agentSlug: readPref<string | null>("aiAgent", null),
   },
+  agents: [],
+  commands: [],
+  toolDefs: [],
+  agentEditor: null,
+  commandPaletteOpen: false,
 };
 
 let state: AppState = initial;

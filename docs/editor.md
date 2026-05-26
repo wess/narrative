@@ -59,7 +59,7 @@ when you highlight text, so you can apply formatting with the mouse too.
 | **Code** | A fenced code block with a language. |
 | **Math** | KaTeX-rendered math — `$$…$$` for a block, `$…$` inline. |
 | **Divider** | A horizontal rule. |
-| **Image** | An embedded image. |
+| **Image** | An embedded image — a pasted attachment or a URL. |
 | **Table** | An editable Markdown table. |
 | **Page embed** | `![[Page]]` — renders another page's content inline. |
 | **Page properties** | A YAML front-matter block at the top of the page for structured metadata. |
@@ -69,6 +69,20 @@ when you highlight text, so you can apply formatting with the mouse too.
 Narrative renders math with **KaTeX**. Use `$$ … $$` on its own block for
 display math, or `$ … $` within text for inline math. The source is stored as
 ordinary LaTeX between dollar signs in the Markdown file.
+
+## Images & attachments
+
+There are two ways to put an image on a page:
+
+- **Paste it.** Copy an image anywhere, then paste into a page. Narrative saves
+  it into an `attachments/` folder inside the vault and inserts an image block.
+  The picture is now a real file in your vault — it travels with it, and
+  [Stohr sync](stohr.md) carries it like any page.
+- **Link a URL.** Type or paste an image URL into the image block's field.
+
+Because the attachment lives in the vault, the page's Markdown only stores a
+short relative path (`![](attachments/shot.png)`) — so the note stays portable
+and readable in any other Markdown tool that has the folder alongside it.
 
 ## Page embeds
 

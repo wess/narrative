@@ -24,6 +24,7 @@ import {
 } from "react";
 import * as ch from "../../shared/channels.ts";
 import type { Page } from "../../shared/types.ts";
+import { saveImageAttachment, useAttachmentSrc } from "../lib/attachment.ts";
 import type { Block, BlockType } from "../lib/blocks.ts";
 import { type CtxItem, openMenu, separator } from "../lib/contextmenu.ts";
 import {
@@ -114,6 +115,21 @@ export type BlockOps = {
   duplicate: (id: string) => void;
   copyMarkdown: (id: string) => void;
   moveBy: (id: string, delta: number) => void;
+  // Insert an image block carrying `src` — used when an image is pasted.
+  imageFromPaste: (id: string, src: string) => void;
+};
+
+// An image block's picture. A vault attachment path is resolved to bytes
+// over IPC; an external URL renders straight away.
+const ImageContent = ({ src, alt }: { src: string; alt: string }) => {
+  const resolved = useAttachmentSrc(src);
+  if (!src) {
+    return <div className="block-image-empty">Paste an image, or add a URL below</div>;
+  }
+  if (!resolved) {
+    return <div className="block-image-empty">Loading image…</div>;
+  }
+  return <img src={resolved} alt={alt} />;
 };
 
 // Block types offered by the "Turn into" submenu.
@@ -545,6 +561,17 @@ const TextBlock = ({
   };
 
   const onPaste = (e: ClipboardEvent<HTMLDivElement>) => {
+    // An image on the clipboard becomes a vault attachment + an image block.
+    const imageFile = Array.from(e.clipboardData.items)
+      .find((it) => it.kind === "file" && it.type.startsWith("image/"))
+      ?.getAsFile();
+    if (imageFile) {
+      e.preventDefault();
+      void saveImageAttachment(imageFile).then((path) => {
+        if (path) ops.imageFromPaste(block.id, path);
+      });
+      return;
+    }
     e.preventDefault();
     const text = (e.clipboardData.getData("text/plain") ?? "").replace(/\r?\n/g, " ");
     document.execCommand("insertText", false, text);
@@ -573,9 +600,13 @@ const TextBlock = ({
 
   return (
     <>
+      {/* biome-ignore lint/a11y/useSemanticElements: a rich-text contentEditable surface (inline links, tags, formatting) — it can't be a plain <input>/<textarea> */}
       <div
         ref={editableRef}
         className="block-editable"
+        role="textbox"
+        aria-multiline="true"
+        tabIndex={0}
         contentEditable
         suppressContentEditableWarning
         spellCheck
@@ -669,7 +700,7 @@ const BlockInner = (props: BlockProps) => {
     }
   };
 
-  const plainKeys = (e: KeyboardEvent<HTMLDivElement>) => {
+  const plainKeys = (e: KeyboardEvent<HTMLElement>) => {
     if (e.key === "Backspace" || e.key === "Delete") {
       e.preventDefault();
       ops.remove(block.id);
@@ -705,16 +736,13 @@ const BlockInner = (props: BlockProps) => {
   let content: React.ReactNode;
   if (block.type === "divider") {
     content = (
-      <div
-        ref={plainRef}
+      <button
+        type="button"
+        ref={plainRef as unknown as React.RefObject<HTMLButtonElement>}
         className="block-divider"
-        tabIndex={0}
-        role="separator"
-        aria-orientation="horizontal"
+        aria-label="Divider"
         onKeyDown={plainKeys}
-      >
-        <hr />
-      </div>
+      />
     );
   } else if (block.type === "code") {
     content = (
@@ -739,16 +767,12 @@ const BlockInner = (props: BlockProps) => {
   } else if (block.type === "image") {
     content = (
       <div className="block-image">
-        {block.src ? (
-          <img src={block.src} alt={block.alt ?? ""} />
-        ) : (
-          <div className="block-image-empty">Paste an image URL below</div>
-        )}
+        <ImageContent src={block.src ?? ""} alt={block.alt ?? ""} />
         <input
           ref={plainRef as unknown as React.RefObject<HTMLInputElement>}
           className="block-image-url"
           value={block.src ?? ""}
-          placeholder="https://…"
+          placeholder="Image URL — or paste an image into the page"
           onChange={(e) => ops.change(block.id, { src: e.target.value })}
           onKeyDown={(e) => {
             if (e.key === "Backspace" && !block.src) {
@@ -935,6 +959,7 @@ const BlockInner = (props: BlockProps) => {
       : undefined;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: a block row is a drag-and-drop target and right-click-menu host — its inner controls (editable text, buttons) are individually keyboard-accessible
     <div
       className="block-row"
       id={headingId}
@@ -961,6 +986,7 @@ const BlockInner = (props: BlockProps) => {
         >
           <Plus size={14} />
         </button>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: a pointer-only drag handle — block reordering also has keyboard-reachable "Move up/down" items in the block menu */}
         <span
           className="block-grip"
           title="Drag to move"

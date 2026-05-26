@@ -50,6 +50,11 @@ A built-in **Sample Plugin** ships enabled on first run. It's a real, working
 plugin that exercises the whole API — read its code in the plugins folder as a
 reference.
 
+> **No in-app plugin browser (v1).** Plugins are installed by adding a folder,
+> not from a searchable registry, and there's no automatic update check. This
+> is a deliberate v1 boundary — get a plugin folder however you like (download,
+> `git clone`, build your own) and drop it in.
+
 ## What a plugin can contribute
 
 A plugin's `onload` can register any of:

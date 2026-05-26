@@ -71,6 +71,22 @@ work, and the host never blocks on rendering.
 The folder is permanent; the index is not. See **[Vaults](vault.md)** for the
 full story.
 
+## Current limitations
+
+A few rough edges and deliberate v1 boundaries worth knowing up front:
+
+- **Export is single-page Markdown only** — there's no HTML or PDF export, and
+  no whole-vault export. (Your pages are already Markdown files on disk.)
+- **Renaming a heading doesn't rewrite `[[Page#Heading]]` anchors** that point
+  at it — the page link still resolves, but the jump-to-heading won't.
+- **There's no bulk tag rename** — changing a `#tag` across every page is a
+  manual find-and-replace for now.
+- **The search index is rebuilt in memory on every vault open.** That keeps it
+  honest and disposable, but a very large vault (many thousands of pages) takes
+  longer to open.
+- **Plugins install from a folder**, not an in-app registry — see
+  [Plugins](plugins.md).
+
 ## Where to go next
 
 - **[Vaults](vault.md)** — the file-backed model in detail.

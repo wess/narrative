@@ -6,6 +6,7 @@
 
 import type { MouseEvent } from "react";
 import { useEffect, useRef } from "react";
+import { resolveAttachmentImages } from "../lib/attachment.ts";
 import { renderMarkdown } from "../lib/markdown.ts";
 import { makeContext, runMarkdownProcessors } from "../plugins/obsidian/markdown.ts";
 
@@ -32,8 +33,14 @@ export const RenderedMarkdown = ({
     if (!el) return;
     // `renderMarkdown` escapes user input; plugin processors run after.
     el.innerHTML = renderMarkdown(md);
+    // Vault-relative image paths can't load on their own — resolve them.
+    resolveAttachmentImages(el);
     void runMarkdownProcessors(el, makeContext(sourcePath));
   }, [md, sourcePath]);
 
-  return <div className={className} ref={ref} onClick={onClick} />;
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: optional click delegation for rendered markdown; links inside are real anchors
+    // biome-ignore lint/a11y/useKeyWithClickEvents: same — the anchors handle keyboard activation themselves
+    <div className={className} ref={ref} onClick={onClick} />
+  );
 };

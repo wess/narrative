@@ -1,7 +1,14 @@
 import { invoke } from "@basket/ipc/client";
 import { toast } from "@basket/ui/toast";
 import * as ch from "../../shared/channels.ts";
-import type { AiProvider, ChatMessage, StohrConnectResult, VaultInfo } from "../../shared/types.ts";
+import type {
+  AiProvider,
+  ChatMessage,
+  StohrConnectResult,
+  StohrSyncResult,
+  ToolCall,
+  VaultInfo,
+} from "../../shared/types.ts";
 import { copyText } from "../lib/clipboard.ts";
 import { flattenTree } from "../lib/tree.ts";
 import { getState, setState, type Theme, type View, writePref } from "./store.ts";
@@ -46,6 +53,7 @@ export const actions = {
     setState({ vault, vaultRecents });
     await refreshTree();
     void actions.loadSettings();
+    void actions.refreshAgents();
     const { tree, activeId } = getState();
     // Open the first *file* — folders aren't editable pages.
     const firstFile = flattenTree(tree).find((n) => n.kind === "file");
@@ -510,12 +518,148 @@ export const actions = {
     toast.success("Disconnected from Stohr");
   },
 
+  // Reconcile the vault with Stohr. The host writes any pulled files to disk,
+  // so the tree is refreshed once the sync returns.
+  syncStohr: async (): Promise<StohrSyncResult> => {
+    const result = await invoke(ch.stohrSync, undefined);
+    if (result.ok) {
+      await refreshTree();
+      const moved = result.pulled + result.pushed + result.deleted;
+      if (result.conflicts.length > 0) {
+        toast.info(`Synced with ${result.conflicts.length} conflict(s) — see Settings → Stohr`);
+      } else if (moved > 0) {
+        toast.success(`Synced — ${result.pulled} in, ${result.pushed} out`);
+      } else {
+        toast.success("Already up to date");
+      }
+    } else if (result.error) {
+      toast.error(result.error);
+    }
+    return result;
+  },
+
   // --- AI assistant ------------------------------------------------------
 
   toggleAi: (): void => {
     const aiOpen = !getState().aiOpen;
     writePref("aiOpen", aiOpen);
     setState({ aiOpen });
+  },
+
+  // --- agents + commands -------------------------------------------------
+
+  refreshAgents: async (): Promise<void> => {
+    const [agents, commands, toolDefs] = await Promise.all([
+      invoke(ch.agentList, undefined),
+      invoke(ch.commandList, undefined),
+      invoke(ch.toolList, undefined),
+    ]);
+    setState((s) => {
+      // If the active agent vanished, fall back to the plain assistant.
+      const stillThere = s.chat.agentSlug ? agents.some((a) => a.slug === s.chat.agentSlug) : true;
+      const agentSlug = stillThere ? s.chat.agentSlug : null;
+      if (!stillThere) writePref("aiAgent", null);
+      return {
+        agents,
+        commands,
+        toolDefs,
+        chat: { ...s.chat, agentSlug },
+      };
+    });
+  },
+
+  setAgent: (agentSlug: string | null): void => {
+    writePref("aiAgent", agentSlug);
+    setState((s) => ({ chat: { ...s.chat, agentSlug } }));
+  },
+
+  createAgentFile: async (name: string): Promise<void> => {
+    const agent = await invoke(ch.agentCreate, { name });
+    if (!agent) return;
+    await actions.refreshAgents();
+    await actions.openAgentEditor("agent", agent.slug);
+    toast.success("Agent created");
+  },
+
+  createCommandFile: async (name: string): Promise<void> => {
+    const command = await invoke(ch.commandCreate, { name });
+    if (!command) return;
+    await actions.refreshAgents();
+    await actions.openAgentEditor("command", command.slug);
+    toast.success("Command created");
+  },
+
+  openAgentEditor: async (kind: "agent" | "command", slug: string): Promise<void> => {
+    const source =
+      kind === "agent"
+        ? await invoke(ch.agentSource, { slug })
+        : await invoke(ch.commandSource, { slug });
+    if (!source) return;
+    setState({
+      agentEditor: { open: true, kind, slug, path: source.path, body: source.body, dirty: false },
+    });
+  },
+
+  closeAgentEditor: (): void => setState({ agentEditor: null }),
+
+  updateAgentEditorBody: (body: string): void =>
+    setState((s) =>
+      s.agentEditor
+        ? { agentEditor: { ...s.agentEditor, body, dirty: body !== s.agentEditor.body } }
+        : {},
+    ),
+
+  saveAgentEditor: async (): Promise<void> => {
+    const editor = getState().agentEditor;
+    if (!editor || editor.slug === null) return;
+    if (editor.kind === "agent") {
+      await invoke(ch.agentSave, { slug: editor.slug, body: editor.body });
+    } else {
+      await invoke(ch.commandSave, { slug: editor.slug, body: editor.body });
+    }
+    await actions.refreshAgents();
+    setState((s) => (s.agentEditor ? { agentEditor: { ...s.agentEditor, dirty: false } } : {}));
+    toast.success("Saved");
+  },
+
+  deleteAgentFile: async (kind: "agent" | "command", slug: string): Promise<void> => {
+    if (kind === "agent") await invoke(ch.agentDelete, { slug });
+    else await invoke(ch.commandDelete, { slug });
+    await actions.refreshAgents();
+    setState((s) => (s.agentEditor && s.agentEditor.slug === slug ? { agentEditor: null } : {}));
+    toast.success("Deleted");
+  },
+
+  setCommandPalette: (commandPaletteOpen: boolean): void => setState({ commandPaletteOpen }),
+
+  // Run a command as a one-shot user turn. Uses the command's bound agent
+  // (when set), otherwise sends the body as a plain user message.
+  runCommand: async (slug: string): Promise<void> => {
+    const { commands, chat } = getState();
+    const command = commands.find((c) => c.slug === slug);
+    if (!command) return;
+    setState({ commandPaletteOpen: false });
+    if (command.agent && command.agent !== chat.agentSlug) {
+      actions.setAgent(command.agent);
+    }
+    await actions.sendChat(command.prompt);
+  },
+
+  // The host fires `aiToolCall` as a tool transitions pending → ok/error.
+  applyAiToolCall: (requestId: string, call: ToolCall): void => {
+    setState((s) => {
+      if (s.chat.requestId !== requestId) return {};
+      const msgs = s.chat.messages.slice();
+      const lastIdx = msgs.length - 1;
+      const last = msgs[lastIdx];
+      if (!last || last.role !== "assistant") return {};
+      const existing = last.toolCalls ?? [];
+      const idx = existing.findIndex((c) => c.id === call.id);
+      const toolCalls =
+        idx >= 0 ? existing.map((c, i) => (i === idx ? call : c)) : [...existing, call];
+      msgs[lastIdx] = { ...last, toolCalls };
+      return { chat: { ...s.chat, messages: msgs } };
+    });
   },
 
   setAiContext: (useContext: boolean): void =>
@@ -548,6 +692,7 @@ export const actions = {
         requestId: null,
         useContext: s.chat.useContext,
         useVault: s.chat.useVault,
+        agentSlug: s.chat.agentSlug,
       },
     })),
 
@@ -580,7 +725,10 @@ export const actions = {
     setState({
       chat: {
         ...chat,
-        messages: [...convo, { role: "assistant", content: "" }],
+        messages: [
+          ...convo,
+          { role: "assistant", content: "", agentSlug: chat.agentSlug ?? undefined },
+        ],
         streaming: true,
         requestId,
       },
@@ -591,17 +739,25 @@ export const actions = {
       messages: convo,
       pageId: chat.useContext && activeId !== null ? activeId : undefined,
       useVault: chat.useVault,
+      agentSlug: chat.agentSlug ?? undefined,
     });
 
     setState((s) => {
       if (s.chat.requestId !== requestId) return {};
       const msgs = s.chat.messages.slice();
       const lastIdx = msgs.length - 1;
-      const streamed = msgs[lastIdx]?.content ?? "";
+      const last = msgs[lastIdx];
+      const streamed = last?.content ?? "";
       const content = result.ok
         ? result.content || streamed
         : streamed || `⚠️ ${result.error ?? "AI request failed"}`;
-      msgs[lastIdx] = { role: "assistant", content };
+      const toolCalls = result.toolCalls ?? last?.toolCalls;
+      msgs[lastIdx] = {
+        role: "assistant",
+        content,
+        ...(toolCalls && toolCalls.length > 0 ? { toolCalls } : {}),
+        ...(last?.agentSlug ? { agentSlug: last.agentSlug } : {}),
+      };
       return { chat: { ...s.chat, messages: msgs, streaming: false, requestId: null } };
     });
 

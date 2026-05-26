@@ -55,6 +55,22 @@ and history survive them.
 This means you can keep your vault in version control or a sync folder and edit
 it from anywhere; Narrative simply keeps up.
 
+## External edits and conflicts
+
+When the watcher — or a [Stohr sync](stohr.md) — sees a page change on disk,
+Narrative normally just re-loads it into the editor. But if you have **unsaved
+edits in that page** at the moment it changes underneath you, silently
+reloading would throw your work away.
+
+Instead, the editor shows a **conflict banner** with two choices:
+
+- **Keep my version** — your unsaved edits win and are saved over the external
+  change.
+- **Load from disk** — the on-disk version wins and your unsaved edits are
+  discarded.
+
+The decision is always yours; Narrative never discards unsaved work on its own.
+
 ## The sidecar
 
 Some things aren't part of a note's content but still belong to the vault:

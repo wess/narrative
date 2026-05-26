@@ -86,6 +86,10 @@ const TreeRow = ({ node, depth }: { node: TreeNode; depth: number }) => {
     <li>
       <div
         className="tree-row"
+        role="treeitem"
+        tabIndex={isRenaming ? -1 : 0}
+        aria-selected={isActive}
+        aria-expanded={isFolder ? isOpen : undefined}
         data-active={isActive}
         data-folder={isFolder}
         data-drop={drop ?? undefined}
@@ -97,6 +101,12 @@ const TreeRow = ({ node, depth }: { node: TreeNode; depth: number }) => {
         onDrop={onDrop}
         onClick={() => {
           if (!isRenaming) void actions.openPage(node.id);
+        }}
+        onKeyDown={(e) => {
+          if (!isRenaming && e.key === "Enter") {
+            e.preventDefault();
+            void actions.openPage(node.id);
+          }
         }}
         onContextMenu={(e) => {
           e.preventDefault();

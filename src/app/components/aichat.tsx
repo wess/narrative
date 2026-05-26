@@ -1,11 +1,28 @@
-import { Bot, Library, Send, Square, Trash2, X } from "lucide-react";
-import { type MouseEvent, useEffect, useRef, useState } from "react";
+import {
+  Bot,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  CircleAlert,
+  Library,
+  Loader2,
+  Pencil,
+  Plus,
+  Send,
+  Slash,
+  Square,
+  Trash2,
+  Wrench,
+  X,
+} from "lucide-react";
+import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { PROVIDERS } from "../../shared/providers.ts";
+import type { ToolCall } from "../../shared/types.ts";
+import { stripChatToolBlocks } from "../lib/agent.ts";
 import { renderMarkdown } from "../lib/markdown.ts";
 import { actions } from "../state/actions.ts";
 import { useApp } from "../state/store.ts";
 
-// Wiki links / tags in AI replies navigate, like the editor preview.
 const onMarkdownClick = (e: MouseEvent<HTMLDivElement>) => {
   const link = (e.target as HTMLElement).closest("a");
   if (!link) return;
@@ -21,10 +38,159 @@ const onMarkdownClick = (e: MouseEvent<HTMLDivElement>) => {
   }
 };
 
+const StatusIcon = ({ status }: { status: ToolCall["status"] }) => {
+  if (status === "pending") return <Loader2 size={12} className="aichat-tool-spin" />;
+  if (status === "error") return <CircleAlert size={12} className="aichat-tool-err" />;
+  return <CheckCircle2 size={12} className="aichat-tool-ok" />;
+};
+
+const ToolCallCard = ({ call }: { call: ToolCall }) => {
+  const [open, setOpen] = useState(false);
+  const argsJson = useMemo(() => {
+    try {
+      return JSON.stringify(call.args, null, 2);
+    } catch {
+      return String(call.args);
+    }
+  }, [call.args]);
+  const resultJson = useMemo(() => {
+    if (call.status === "pending") return "";
+    if (call.status === "error") return call.error ?? "";
+    try {
+      return JSON.stringify(call.result, null, 2);
+    } catch {
+      return String(call.result);
+    }
+  }, [call.status, call.result, call.error]);
+
+  return (
+    <div className="aichat-tool" data-status={call.status}>
+      <button
+        type="button"
+        className="aichat-tool-head"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+        <Wrench size={11} />
+        <span className="aichat-tool-name">{call.name}</span>
+        <StatusIcon status={call.status} />
+      </button>
+      {open ? (
+        <div className="aichat-tool-body">
+          <div className="aichat-tool-label">args</div>
+          <pre className="aichat-tool-pre">{argsJson}</pre>
+          {call.status !== "pending" ? (
+            <>
+              <div className="aichat-tool-label">
+                {call.status === "error" ? "error" : "result"}
+              </div>
+              <pre className="aichat-tool-pre">{resultJson}</pre>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const AgentPicker = () => {
+  const { agents, chat } = useApp();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: globalThis.MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const active = chat.agentSlug ? (agents.find((a) => a.slug === chat.agentSlug) ?? null) : null;
+
+  const pick = (slug: string | null) => {
+    actions.setAgent(slug);
+    setOpen(false);
+  };
+
+  const createNew = async () => {
+    setOpen(false);
+    const name = window.prompt("Agent name:", "New Agent");
+    if (name?.trim()) await actions.createAgentFile(name.trim());
+  };
+
+  return (
+    <div className="aichat-agent" ref={wrapRef}>
+      <button
+        type="button"
+        className="aichat-agent-btn"
+        onClick={() => setOpen((v) => !v)}
+        title="Switch agent"
+      >
+        <span className="aichat-agent-icon">{active?.icon ?? "\u{1F916}"}</span>
+        <span className="aichat-agent-label">{active?.name ?? "Plain assistant"}</span>
+        <ChevronDown size={11} />
+      </button>
+      {open ? (
+        <div className="aichat-agent-menu" role="listbox">
+          <button
+            type="button"
+            className="aichat-agent-opt"
+            data-active={chat.agentSlug === null}
+            onClick={() => pick(null)}
+          >
+            <span className="aichat-agent-icon">{"\u{1F4AC}"}</span>
+            <span className="aichat-agent-opt-text">
+              <span className="aichat-agent-opt-name">Plain assistant</span>
+              <span className="aichat-agent-opt-desc">No tools — chat-only.</span>
+            </span>
+          </button>
+          {agents.map((agent) => (
+            <button
+              type="button"
+              key={agent.slug}
+              className="aichat-agent-opt"
+              data-active={chat.agentSlug === agent.slug}
+              onClick={() => pick(agent.slug)}
+            >
+              <span className="aichat-agent-icon">{agent.icon}</span>
+              <span className="aichat-agent-opt-text">
+                <span className="aichat-agent-opt-name">{agent.name}</span>
+                {agent.description ? (
+                  <span className="aichat-agent-opt-desc">{agent.description}</span>
+                ) : null}
+              </span>
+              <button
+                type="button"
+                className="aichat-agent-opt-edit"
+                title="Edit agent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(false);
+                  void actions.openAgentEditor("agent", agent.slug);
+                }}
+              >
+                <Pencil size={11} />
+              </button>
+            </button>
+          ))}
+          <div className="aichat-agent-sep" />
+          <button type="button" className="aichat-agent-new" onClick={createNew}>
+            <Plus size={11} /> New agent…
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 export const AiChat = () => {
-  const { chat, aiConfig, activePage } = useApp();
+  const { chat, aiConfig, activePage, agents, commands } = useApp();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to the bottom on every new message or streamed chunk
   useEffect(() => {
@@ -39,7 +205,20 @@ export const AiChat = () => {
     void actions.sendChat(text);
   };
 
+  // A `/` typed at the very start of the input opens the command palette.
+  const onInputChange = (value: string) => {
+    if (value === "/" && commands.length > 0) {
+      setInput("");
+      actions.setCommandPalette(true);
+      return;
+    }
+    setInput(value);
+  };
+
   const needsKey = aiConfig != null && PROVIDERS[aiConfig.provider].requiresKey && !aiConfig.hasKey;
+  const activeAgent = chat.agentSlug
+    ? (agents.find((a) => a.slug === chat.agentSlug) ?? null)
+    : null;
 
   return (
     <aside className="aichat">
@@ -47,10 +226,16 @@ export const AiChat = () => {
         <span className="aichat-title">
           <Bot size={15} /> AI Assistant
         </span>
-        {aiConfig ? (
-          <span className="aichat-provider">{PROVIDERS[aiConfig.provider].label}</span>
-        ) : null}
+        <AgentPicker />
         <span className="aichat-spacer" />
+        <button
+          type="button"
+          className="icon-btn"
+          title="Run command (/)"
+          onClick={() => actions.setCommandPalette(true)}
+        >
+          <Slash size={13} />
+        </button>
         <button
           type="button"
           className="icon-btn"
@@ -74,7 +259,10 @@ export const AiChat = () => {
           <div className="aichat-empty">
             <Bot size={26} />
             <p>
-              Ask anything — toggle "use current page" to ground answers in what you're reading.
+              {activeAgent
+                ? activeAgent.description ||
+                  `Chat with ${activeAgent.name}. Type "/" to run a command.`
+                : 'Ask anything — pick an agent above to give the assistant tools, or type "/" to run a command.'}
             </p>
             {needsKey ? (
               <button type="button" className="aichat-cta" onClick={() => actions.openSettings()}>
@@ -91,17 +279,28 @@ export const AiChat = () => {
               data-role={m.role}
             >
               {m.role === "assistant" && m.content ? (
+                // biome-ignore lint/a11y/noStaticElementInteractions: rendered-markdown click delegation — links inside are real, focusable anchors
+                // biome-ignore lint/a11y/useKeyWithClickEvents: same — the anchors handle keyboard activation themselves
                 <div
                   className="aichat-md markdown"
                   onClick={onMarkdownClick}
                   // biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown escapes input
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(stripChatToolBlocks(m.content)),
+                  }}
                 />
               ) : m.content ? (
                 m.content
               ) : (
                 <span className="aichat-dots">●●●</span>
               )}
+              {m.toolCalls && m.toolCalls.length > 0 ? (
+                <div className="aichat-tools">
+                  {m.toolCalls.map((call) => (
+                    <ToolCallCard key={call.id} call={call} />
+                  ))}
+                </div>
+              ) : null}
               {m.sources && m.sources.length > 0 ? (
                 <div className="aichat-sources">
                   <Library size={11} />
@@ -143,11 +342,16 @@ export const AiChat = () => {
         </div>
         <div className="aichat-inputrow">
           <textarea
+            ref={inputRef}
             className="aichat-input"
             value={input}
-            placeholder="Message the assistant…"
+            placeholder={
+              activeAgent
+                ? `Message ${activeAgent.name}… (/ for commands)`
+                : "Message the assistant… (/ for commands)"
+            }
             rows={2}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

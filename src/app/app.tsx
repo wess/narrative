@@ -3,8 +3,10 @@ import { Palette, type PaletteCommand } from "@basket/ui/palette";
 import { Toaster } from "@basket/ui/toast";
 import { useEffect, useMemo } from "react";
 import * as ch from "../shared/channels.ts";
+import { AgentEditor } from "./components/agenteditor.tsx";
 import { AiChat } from "./components/aichat.tsx";
 import { Backlinks } from "./components/backlinks.tsx";
+import { CommandPalette } from "./components/commandpalette.tsx";
 import { ContextMenuHost } from "./components/contextmenu.tsx";
 import { Editor } from "./components/editor.tsx";
 import { FindBar } from "./components/findbar.tsx";
@@ -97,6 +99,9 @@ export const App = () => {
       if (mod && !e.shiftKey && e.key.toLowerCase() === "f") {
         e.preventDefault();
         actions.toggleFind();
+      } else if (mod && e.shiftKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        actions.setCommandPalette(true);
       } else if (mod && e.key.toLowerCase() === "w" && getState().tabs.length > 1) {
         const id = getState().activeId;
         if (id !== null) {
@@ -136,6 +141,12 @@ export const App = () => {
       }),
       subscribe(ch.aiSources, ({ requestId, titles }) => {
         actions.applyAiSources(requestId, titles);
+      }),
+      subscribe(ch.aiToolCall, ({ requestId, call }) => {
+        actions.applyAiToolCall(requestId, call);
+      }),
+      subscribe(ch.agentsChanged, () => {
+        void actions.refreshAgents();
       }),
     ];
     return () => {
@@ -300,6 +311,8 @@ export const App = () => {
         placeholder="Jump to a page or run a command…"
       />
       <Settings />
+      <CommandPalette />
+      <AgentEditor />
       <ContextMenuHost />
       <HoverPreview />
       <Toaster />

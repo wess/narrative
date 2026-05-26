@@ -77,6 +77,49 @@ If a stored connection fails to verify later, Narrative reports the reason but
 **keeps the token** — a `401` means you should re-authenticate, while a network
 blip is transient and will recover on its own.
 
+## Vault sync
+
+Once connected, Narrative keeps the **whole vault folder** in two-way sync with
+your Stohr account — every Markdown page and every attachment.
+
+### When it syncs
+
+- on launch, and whenever you switch vaults;
+- right after you connect;
+- automatically every couple of minutes;
+- on demand — the **Sync now** button on the Stohr tab.
+
+### How it works
+
+The first sync creates a folder named after your vault on Stohr and uploads
+everything into it. After that, each sync walks both sides and reconciles them
+against a baseline recorded in `.narrative/stohr.json` inside the vault:
+
+- a file changed only locally is **uploaded**;
+- a file changed only on Stohr is **downloaded**;
+- a file removed on one side is **removed on the other**;
+- a brand-new file on either side is copied across.
+
+Pulled files are written straight into the vault folder, so they appear in the
+sidebar like any other page.
+
+### Conflicts
+
+If the **same file changed on both sides** since the last sync, Narrative keeps
+your local copy and saves the Stohr copy next to it as
+`<name> (stohr conflict <date>).md` — nothing is overwritten or lost. The Stohr
+tab lists any conflicts after a manual sync so you can merge them by hand.
+
+If a pulled change lands on a page you're **editing with unsaved work**, the
+editor raises a conflict banner rather than discarding your edits — see
+[Vaults](vault.md#external-edits-and-conflicts).
+
+### What syncs
+
+Markdown pages and common attachment types (`.png`, `.jpg`, `.gif`, `.webp`,
+`.svg`, `.pdf`). The `.narrative/` folder — your pins, icons, and the sync
+baseline — stays local and is never uploaded.
+
 ## Disconnecting
 
 **Disconnect** on the Stohr tab removes the token from your keychain and clears
@@ -91,10 +134,12 @@ rules.
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /login` | Sign in with identity + password; may return an MFA challenge |
-| `POST /login/mfa` | Complete a two-factor sign-in with a code |
-| `GET /me` | Verify the token and fetch the account |
-| `GET /me/usage` | Fetch storage quota and usage |
+| `POST /login`, `POST /login/mfa` | Sign in, with optional two-factor |
+| `GET /me`, `GET /me/usage` | Verify the token; fetch the account and storage usage |
+| `GET /folders`, `POST /folders` | Walk and create the vault's folder tree |
+| `GET /files`, `POST /files` | List files, and upload (or version) them |
+| `GET /files/:id/download` | Download a file's bytes |
+| `DELETE /files/:id` | Propagate a deletion to Stohr |
 
 Authentication is an `Authorization: Bearer <token>` header, where the token is
 either a `stohr_pat_…` personal access token or the JWT returned by sign-in.

@@ -19,6 +19,7 @@ import type {
   EmbedStatus,
   InstalledPlugin,
   StohrStatus,
+  StohrSyncResult,
 } from "../../shared/types.ts";
 import { useRegistry } from "../plugins/registry.ts";
 import { pluginRuntime, usePlugins } from "../plugins/runtime.ts";
@@ -263,6 +264,8 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
   const [mfaCode, setMfaCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<StohrSyncResult | null>(null);
 
   // Re-verify the stored connection each time the tab is opened.
   useEffect(() => {
@@ -312,6 +315,39 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
           </div>
         ) : null}
 
+        <div className="settings-field">
+          <span className="settings-label">Vault sync</span>
+          <div className="settings-field-row">
+            <button
+              type="button"
+              className="settings-btn settings-btn-accent"
+              disabled={syncing}
+              onClick={async () => {
+                setSyncing(true);
+                setSyncResult(await actions.syncStohr());
+                setSyncing(false);
+              }}
+            >
+              {syncing ? "Syncing…" : "Sync now"}
+            </button>
+            {syncResult ? (
+              <span className={syncResult.ok ? "settings-test ok" : "settings-test err"}>
+                {syncResult.ok
+                  ? `${syncResult.pulled} pulled · ${syncResult.pushed} pushed${
+                      syncResult.deleted > 0 ? ` · ${syncResult.deleted} deleted` : ""
+                    }`
+                  : (syncResult.error ?? "Sync failed")}
+              </span>
+            ) : null}
+          </div>
+          {syncResult && syncResult.conflicts.length > 0 ? (
+            <p className="settings-hint">
+              Both sides changed these — the Stohr copy was saved beside the local one:{" "}
+              {syncResult.conflicts.join(", ")}
+            </p>
+          ) : null}
+        </div>
+
         <div className="settings-field settings-field-row">
           <button
             type="button"
@@ -323,8 +359,9 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
         </div>
 
         <p className="settings-hint">
-          Stohr is self-hostable cloud storage with a federation layer — Narrative is its companion
-          editor. Your Stohr files will appear in the sidebar.
+          Narrative keeps this vault's Markdown and attachments in two-way sync with your Stohr
+          account — on launch, right after you connect, every couple of minutes, and whenever you
+          press Sync now.
         </p>
       </div>
     );
@@ -475,8 +512,9 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
       </div>
 
       <p className="settings-hint">
-        Stohr is self-hostable cloud storage with a federation layer. Your token is stored in the
-        macOS Keychain, never in a plain file.
+        Stohr is self-hostable cloud storage with a federation layer. Connect an account to keep
+        this vault's files synced to it both ways. Your token is stored in the macOS Keychain, never
+        in a plain file.
       </p>
     </div>
   );
@@ -668,6 +706,7 @@ export const Settings = () => {
   if (!settingsOpen) return null;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: click-outside-to-dismiss backdrop; Escape also closes the dialog for keyboard users
     <div
       className="settings-backdrop"
       onMouseDown={(e) => {
