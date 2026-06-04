@@ -4,9 +4,17 @@ All notable changes to Narrative are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project aims
 to adhere to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.1] - 2026-06-04
 
 ### Added
+
+- App icon (`assets/icon.icns`) wired through `window.icon`, shown on the
+  bundled `.app`, in the Dock, and in Finder.
+- Signed + notarized macOS distribution: a `release.yml` workflow that
+  compiles, bundles, signs with a Developer ID Application certificate
+  (hardened runtime + JIT entitlements), notarizes, staples, and publishes a
+  DMG — installable without the "unidentified developer" Gatekeeper warning —
+  plus a Homebrew cask.
 
 - **Stohr vault sync** — a two-way reconcile of the vault folder with a
   [Stohr](https://github.com/wess/stohr) account. Files are pushed and pulled
