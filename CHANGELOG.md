@@ -4,6 +4,16 @@ All notable changes to Narrative are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project aims
 to adhere to [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] - 2026-06-04
+
+### Fixed
+
+- The released app hung on startup — a butter compiled-binary IPC bug (the host never received webview calls). The vendored butter is patched so all host calls work in the compiled app.
+
+### Added
+
+- App version in the window title bar (e.g. "Narrative v0.1.3").
+
 ## [0.1.2] - 2026-06-04
 
 ### Added

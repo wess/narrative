@@ -8,7 +8,8 @@ import { openFolder, saveFile } from "@basket/dialog";
 import { emit, handle } from "@basket/ipc";
 import { applyMenu, onMenu } from "@basket/menu";
 import { createStore } from "@basket/store";
-import { mainWindow } from "@basket/window";
+import { mainWindow, setWindow } from "@basket/window";
+import { version } from "../../package.json";
 import * as ch from "../shared/channels.ts";
 import { PROVIDERS } from "../shared/providers.ts";
 import type { AiResult, SearchHit, StohrSyncResult, VaultInfo } from "../shared/types.ts";
@@ -146,6 +147,11 @@ const win = mainWindow({
   store: settings,
   storeKey: "window",
 });
+
+// Show the app version in the title bar, e.g. "Narrative v0.1.3". Overrides any
+// restored title so it always reflects the running build. version is inlined
+// from package.json at compile time.
+setWindow({ title: `${config.app.name} v${version}` });
 
 applyMenu(menu);
 
