@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Documentation — Narrative</title>
+    <meta name="description" content="Documentation for Narrative: the vault model, the block editor, linking and the graph, search, the AI assistant, Stohr sync, the MCP server, plugins, building, and hands-on tutorials." />
+    <link rel="stylesheet" href="styles.css" />
+    <style>:root{--accent:#a78bfa;--accent2:#7c5cff}</style>
+  </head>
+  <body>
+    <nav class="nav">
+      <div class="wrap">
+        <a class="brand" href="index.html"><span class="mark">❧</span> Narrative</a>
+        <button class="navtoggle" aria-label="Menu" data-nav>☰</button>
+        <div class="navlinks" data-navlinks>
+          <a href="index.html#features">Features</a>
+          <a href="index.html#how">How it works</a>
+          <a href="index.html#start">Quick start</a>
+          <a href="docs.html">Docs</a>
+          <a class="btn primary" href="https://github.com/wess/narrative">GitHub</a>
+        </div>
+      </div>
+    </nav>
+
+    <header class="dochero">
+      <div class="wrap">
+        <div class="eyebrow">Documentation</div>
+        <h2 style="font-size: clamp(28px, 5vw, 40px); font-weight: 800; letter-spacing: -0.02em">Everything about Narrative.</h2>
+        <p class="sub">
+          The full reference lives as Markdown in the <code>docs/</code> folder. Start with the overview or the
+          hands-on tutorials, then dive into the vault model, the editor, and the runtime. Each card links straight to
+          the source document.
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="docsection">Start here</div>
+      <div class="docgrid">
+        <a class="doccard" href="../docs/readme.md">
+          <div class="t"><span class="ico">📖</span> Documentation home</div>
+          <p>The doc map and where to begin reading.</p>
+        </a>
+        <a class="doccard" href="../docs/overview.md">
+          <div class="t"><span class="ico">🧭</span> Overview</div>
+          <p>What Narrative is and how it's built.</p>
+        </a>
+        <a class="doccard" href="../docs/tutorial/readme.md">
+          <div class="t"><span class="ico">🎓</span> Tutorials</div>
+          <p>A hands-on path from install to writing your first plugin.</p>
+        </a>
+      </div>
+
+      <div class="docsection">Core concepts</div>
+      <div class="docgrid">
+        <a class="doccard" href="../docs/vault.md">
+          <div class="t"><span class="ico">🗄️</span> Vaults</div>
+          <p>The file-backed vault model and how sync works.</p>
+        </a>
+        <a class="doccard" href="../docs/editor.md">
+          <div class="t"><span class="ico">✍️</span> The editor</div>
+          <p>Blocks, the slash menu, and every block type.</p>
+        </a>
+        <a class="doccard" href="../docs/linking.md">
+          <div class="t"><span class="ico">🔗</span> Linking & the graph</div>
+          <p>Wiki links, backlinks, and hover previews.</p>
+        </a>
+        <a class="doccard" href="../docs/search.md">
+          <div class="t"><span class="ico">🔎</span> Search & organisation</div>
+          <p>Operators, tags, daily notes, and templates.</p>
+        </a>
+        <a class="doccard" href="../docs/shortcuts.md">
+          <div class="t"><span class="ico">⌨️</span> Keyboard shortcuts</div>
+          <p>The full shortcut reference.</p>
+        </a>
+      </div>
+
+      <div class="docsection">AI, sync & extensibility</div>
+      <div class="docgrid">
+        <a class="doccard" href="../docs/ai.md">
+          <div class="t"><span class="ico">🤖</span> AI assistant</div>
+          <p>Providers, RAG, and the semantic index.</p>
+        </a>
+        <a class="doccard" href="../docs/stohr.md">
+          <div class="t"><span class="ico">☁️</span> Connecting to Stohr</div>
+          <p>Optional self-hostable cloud storage and sync.</p>
+        </a>
+        <a class="doccard" href="../docs/mcp.md">
+          <div class="t"><span class="ico">🔌</span> MCP server</div>
+          <p>Exposing your vault to AI clients.</p>
+        </a>
+        <a class="doccard" href="../docs/plugins.md">
+          <div class="t"><span class="ico">🧩</span> Plugins</div>
+          <p>Installing and writing Obsidian-compatible plugins.</p>
+        </a>
+        <a class="doccard" href="../docs/building.md">
+          <div class="t"><span class="ico">📦</span> Building & distribution</div>
+          <p>Dev, compile, bundle, and ship cross-platform.</p>
+        </a>
+      </div>
+
+      <div class="docsection">Tutorials</div>
+      <div class="docgrid">
+        <a class="doccard" href="../docs/tutorial/readme.md">
+          <div class="t"><span class="ico">🧭</span> Tutorial index</div>
+          <p>The hands-on learning path, start to finish.</p>
+        </a>
+        <a class="doccard" href="../docs/tutorial/gettingstarted.md">
+          <div class="t"><span class="ico">🚀</span> Getting started</div>
+          <p>Install Narrative and open your first vault.</p>
+        </a>
+        <a class="doccard" href="../docs/tutorial/writing.md">
+          <div class="t"><span class="ico">✍️</span> Writing</div>
+          <p>Blocks, the slash menu, and Markdown shortcuts in practice.</p>
+        </a>
+        <a class="doccard" href="../docs/tutorial/linking.md">
+          <div class="t"><span class="ico">🔗</span> Linking</div>
+          <p>Connect pages with wiki links and explore backlinks.</p>
+        </a>
+        <a class="doccard" href="../docs/tutorial/organizing.md">
+          <div class="t"><span class="ico">🗂️</span> Organizing</div>
+          <p>Folders, tags, daily notes, and templates.</p>
+        </a>
+        <a class="doccard" href="../docs/tutorial/ai.md">
+          <div class="t"><span class="ico">🤖</span> Using AI</div>
+          <p>Set up a provider and ask questions grounded in your notes.</p>
+        </a>
+        <a class="doccard" href="../docs/tutorial/plugin.md">
+          <div class="t"><span class="ico">🧩</span> Writing a plugin</div>
+          <p>Build your first Obsidian-compatible plugin.</p>
+        </a>
+      </div>
+    </main>
+
+    <footer style="margin-top: 60px">
+      <div class="wrap">
+        <a class="brand" href="index.html"><span class="mark">❧</span> Narrative</a>
+        <div class="links">
+          <a href="index.html">Home</a>
+          <a href="../docs/readme.md">Docs source</a>
+          <a href="../README.md">Readme</a>
+          <a href="https://github.com/wess/narrative">GitHub</a>
+          <a href="https://github.com/wess/stohr">Stohr</a>
+        </div>
+        <span>Apache 2.0 · © 2026 Wess Cope</span>
+      </div>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

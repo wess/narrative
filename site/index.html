@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Narrative — a fast, native knowledge base of Markdown files you own</title>
+    <meta
+      name="description"
+      content="Narrative is a native desktop knowledge base where every note is a plain Markdown file you own. Write in blocks, connect ideas with [[links]], search in milliseconds, and ask an AI grounded in your own notes."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <style>:root{--accent:#a78bfa;--accent2:#7c5cff}</style>
+  </head>
+  <body>
+    <!-- nav -->
+    <nav class="nav">
+      <div class="wrap">
+        <a class="brand" href="index.html"><span class="mark">❧</span> Narrative</a>
+        <button class="navtoggle" aria-label="Menu" data-nav>☰</button>
+        <div class="navlinks" data-navlinks>
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href="#start">Quick start</a>
+          <a href="docs.html">Docs</a>
+          <a class="btn primary" href="https://github.com/wess/narrative">GitHub</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- hero -->
+    <header class="hero">
+      <div class="wrap">
+        <span class="pill"><span class="dot"></span> Native · file-backed · runs on Bun</span>
+        <h1>A knowledge base where <span class="accent">every note is a file you own</span>.</h1>
+        <p class="lead">
+          Write in blocks. Connect ideas with <code>[[links]]</code>. Find anything in milliseconds. Ask an AI grounded
+          in your own notes — all in a desktop app that starts in a blink and never holds your knowledge hostage.
+        </p>
+        <div class="cta">
+          <a class="btn primary" href="#start">Get started</a>
+          <a class="btn ghost" href="https://github.com/wess/narrative">View on GitHub →</a>
+        </div>
+
+        <!-- editor mockup -->
+        <div class="mock">
+          <div class="bar">
+            <span class="hash">❧</span><span>ideas / connected-thought.md</span>
+            <span class="muted" style="font-size: 13px">· vault: ~/notes</span>
+            <span class="dots"><i></i><i></i><i></i></span>
+          </div>
+          <div class="body">
+            <div class="msg">
+              <div class="av" style="background: linear-gradient(135deg, #a78bfa, #7c5cff)">✍️</div>
+              <div>
+                <div class="who">Block editor <small>Markdown underneath</small></div>
+                <div class="txt">Type <span class="men">/</span> for the slash menu, <span class="men"># </span> for a heading, <span class="men">- </span> for a list. Saves to plain <code>.md</code> on disk.</div>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="av" style="background: linear-gradient(135deg, #7c5cff, #5b3df0)">🔗</div>
+              <div>
+                <div class="who">Linking <small>backlinks · graph</small></div>
+                <div class="txt">A <span class="men">[[Wiki link]]</span> connects pages; backlinks and a graph view turn notes into a web of thought.</div>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="av" style="background: linear-gradient(135deg, #b9a3ff, #8a6dff)">🤖</div>
+              <div>
+                <div class="who">AI assistant <small>grounded in your vault</small></div>
+                <div class="typing"><i></i><i></i><i></i> searching your notes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- features -->
+    <section class="block" id="features">
+      <div class="wrap">
+        <div class="eyebrow">Features</div>
+        <h2>A second brain, backed by files — not a database.</h2>
+        <p class="sub">Everything you'd want from a modern note-taking app, with plain Markdown as the source of truth.</p>
+        <div class="grid">
+          <div class="card">
+            <div class="ico">📄</div>
+            <h3>Your vault is a folder</h3>
+            <p>Every page is a real <code>.md</code> file, every subfolder a folder. No proprietary database, no lock-in — back it up with git, sync it with anything, open it in any editor.</p>
+          </div>
+          <div class="card">
+            <div class="ico">✍️</div>
+            <h3>Block editor</h3>
+            <p>A Notion-style writing surface with a slash menu, Markdown shortcuts, callouts, code, KaTeX math, tables, page embeds, and YAML page properties — round-tripping to Markdown on every save.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🔗</div>
+            <h3>Linked, not foldered</h3>
+            <p><code>[[Wiki links]]</code> with live autocomplete, <code>[[Page#Heading]]</code> jumps, backlinks and outgoing-link panels, hover previews, and a global and local graph view.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🔎</div>
+            <h3>Ranked full-text search</h3>
+            <p>Find anything in milliseconds. Search is ranked and supports operators: <code>tag:</code>, <code>title:</code>, <code>content:</code>, and <code>/regex/</code>.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🗂️</div>
+            <h3>Organisation</h3>
+            <p>Drag-to-reorganise folders, nested <code>#tags</code> as a collapsible tree, daily notes, pinning, archive, templates, page icons, and a document outline.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🪟</div>
+            <h3>Workspace</h3>
+            <p>Tabs, a split-view reference pane, find in note (<code>⌘F</code>), a command palette (<code>⌘K</code>), random note, light / dark / auto theme, and persisted window state.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🤖</div>
+            <h3>AI that knows your notes</h3>
+            <p>A streaming chat drawer (<code>⌘J</code>) grounds answers in the page you're reading and/or your whole vault (RAG), plus one-tap page summarisation. Keys live in the OS Keychain.</p>
+          </div>
+          <div class="card">
+            <div class="ico">☁️</div>
+            <h3>Optional cloud sync</h3>
+            <p>Stay fully local, or connect to a self-hostable <a href="https://github.com/wess/stohr">Stohr</a> instance for two-way sync — pages and attachments, with conflicts kept side by side.</p>
+          </div>
+          <div class="card">
+            <div class="ico">🔌</div>
+            <h3>MCP server & plugins</h3>
+            <p>A standalone Model Context Protocol server lets Claude Desktop, Cursor, or Claude Code work with your vault. An Obsidian-compatible plugin API loads community plugins.</p>
+          </div>
+          <div class="card">
+            <div class="ico">⚡</div>
+            <h3>Native and fast</h3>
+            <p>No bundled browser — Narrative uses each OS's own webview. A small binary, an instant cold start, and a window that feels like part of your OS.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- how it works -->
+    <section class="block" id="how">
+      <div class="wrap">
+        <div class="eyebrow">How it works</div>
+        <h2>Files on disk are the source of truth.</h2>
+        <p class="sub">
+          The database is a derived index, rebuilt from your files on every open — there is nothing persistent to go
+          stale, and nothing to lock you in.
+        </p>
+        <div class="steps">
+          <div class="step">
+            <h4>Point it at a folder</h4>
+            <p>Open any folder of Markdown. Subfolders become folders; every <code>.md</code> file becomes a page.</p>
+          </div>
+          <div class="step">
+            <h4>Write in blocks</h4>
+            <p>The editor round-trips to plain Markdown on every save. What you see is exactly what's on disk.</p>
+          </div>
+          <div class="step">
+            <h4>The index follows</h4>
+            <p>Links, tags, and embeddings are re-derived from your files; a watcher folds in edits from git or other editors.</p>
+          </div>
+          <div class="step">
+            <h4>Ask and connect</h4>
+            <p>Backlinks, the graph, ranked search, and an AI grounded in your vault turn notes into connected thought.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- architecture -->
+    <section class="block" id="architecture">
+      <div class="wrap">
+        <div class="eyebrow">Architecture</div>
+        <h2>Two processes, one typed IPC contract.</h2>
+        <div class="split">
+          <ul>
+            <li><span class="ck">✦</span><span><b>Bun host process</b> — the vault repo, file I/O, index sync, search, RAG, and AI providers.</span></li>
+            <li><span class="ck">✦</span><span><b>React webview</b> — the editor, sidebar, graph, search, and settings, using each OS's native webview.</span></li>
+            <li><span class="ck">✦</span><span><b>Derived index</b> — an in-memory SQLite index rebuilt from your files; the filesystem is always the source of truth.</span></li>
+            <li><span class="ck">✦</span><span><b>Built on butter + basket</b> — Narrative's own desktop framework and <code>@basket/*</code> standard library, vendored in.</span></li>
+            <li><span class="ck">✦</span><span><b>Cross-platform</b> — builds a single-file binary and native bundles for macOS, Linux, and Windows.</span></li>
+          </ul>
+          <div class="diagram">        React webview (editor · graph)
+                 │
+       typed IPC channel contract
+                 │
+        Bun host (src/host/index.ts)
+                 │
+      ┌──────────┴───────────┐
+  Markdown files       derived index
+   (the vault)        (in-memory SQLite)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- get started -->
+    <section class="block" id="start">
+      <div class="wrap">
+        <div class="eyebrow">Quick start</div>
+        <h2>Running in a few minutes.</h2>
+        <p class="sub">Narrative runs on <a href="https://bun.sh">Bun</a> — install it first, then clone the repo and go.</p>
+        <div class="code" style="margin-top: 32px; max-width: 720px">
+          <div class="top">
+            <span>terminal</span>
+            <button class="copy" data-copy>Copy</button>
+          </div>
+          <pre data-code><span class="c"># clone the repo</span>
+git clone https://github.com/wess/narrative
+cd narrative
+
+<span class="c"># install deps and open the native window with hot reload</span>
+bun install
+bun run dev
+
+<span class="c"># build a single-file binary -> dist/narrative</span>
+bun run build
+
+<span class="c"># run the standalone MCP server</span>
+bun src/mcp.ts</pre>
+        </div>
+        <p class="sub" style="margin-top: 24px">
+          On first run Narrative seeds a starter vault — press <code>⌘N</code> for a new page and <code>⌘K</code> to open
+          the command palette. See <a href="docs.html">the docs</a> for the full build and distribution guide.
+        </p>
+      </div>
+    </section>
+
+    <!-- cta band -->
+    <section class="band">
+      <div class="wrap">
+        <h2>Own your knowledge.</h2>
+        <p>Open source under Apache 2.0. A native knowledge base that keeps every note as a Markdown file you control.</p>
+        <div class="cta">
+          <a class="btn primary" href="docs.html">Read the docs</a>
+          <a class="btn ghost" href="https://github.com/wess/narrative">Star it on GitHub →</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <a class="brand" href="index.html"><span class="mark">❧</span> Narrative</a>
+        <div class="links">
+          <a href="docs.html">Docs</a>
+          <a href="../docs/readme.md">Documentation</a>
+          <a href="../docs/tutorial/readme.md">Tutorials</a>
+          <a href="https://github.com/wess/narrative">GitHub</a>
+          <a href="https://github.com/wess/stohr">Stohr</a>
+        </div>
+        <span>Apache 2.0 · © 2026 Wess Cope</span>
+      </div>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
