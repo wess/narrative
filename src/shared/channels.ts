@@ -8,6 +8,7 @@ import type {
   AppStats,
   Backlink,
   Backlinks,
+  ChannelDef,
   ChatMessage,
   CommandDef,
   EmbedStatus,
@@ -16,6 +17,7 @@ import type {
   Page,
   PageMeta,
   PluginBundle,
+  ProjectDef,
   RequestUrlInput,
   RequestUrlResult,
   SearchHit,
@@ -152,6 +154,7 @@ export const aiChat = defineChannel<
     pageId?: number;
     useVault?: boolean;
     agentSlug?: string;
+    channelSlug?: string;
   },
   AiResult
 >("ai:chat");
@@ -173,11 +176,20 @@ export const aiToolCall = defineEvent<{ requestId: string; call: ToolCall }>("ev
 // frontmatter on demand.
 
 export const agentList = defineChannel<void, AgentDef[]>("agents:list");
+export const channelList = defineChannel<void, ChannelDef[]>("channels:list");
 export const commandList = defineChannel<void, CommandDef[]>("commands:list");
 export const toolList = defineChannel<void, AgentToolDef[]>("tools:list");
+export const projectList = defineChannel<void, ProjectDef[]>("projects:list");
+export const projectPick = defineChannel<void, ProjectDef | null>("projects:pick");
+export const projectDelete = defineChannel<{ slug: string }, void>("projects:delete");
+export const projectSuggestChannel = defineChannel<
+  { slug: string },
+  { project: ProjectDef; channel: ChannelDef; agents: AgentDef[] } | null
+>("projects:suggestchannel");
 // Scaffolding helpers — create a starter file in `.narrative/agents/` or
 // `.narrative/commands/` and return the freshly-loaded definition.
 export const agentCreate = defineChannel<{ name: string }, AgentDef | null>("agents:create");
+export const channelCreate = defineChannel<{ name: string }, ChannelDef | null>("channels:create");
 export const commandCreate = defineChannel<{ name: string }, CommandDef | null>("commands:create");
 // Read / save the raw markdown source of an agent or command file so the
 // webview can host an in-vault editor for them.
@@ -187,6 +199,12 @@ export const agentSource = defineChannel<{ slug: string }, { path: string; body:
 export const agentSave = defineChannel<{ slug: string; body: string }, AgentDef | null>(
   "agents:save",
 );
+export const channelSource = defineChannel<{ slug: string }, { path: string; body: string } | null>(
+  "channels:source",
+);
+export const channelSave = defineChannel<{ slug: string; body: string }, ChannelDef | null>(
+  "channels:save",
+);
 export const commandSource = defineChannel<{ slug: string }, { path: string; body: string } | null>(
   "commands:source",
 );
@@ -194,6 +212,7 @@ export const commandSave = defineChannel<{ slug: string; body: string }, Command
   "commands:save",
 );
 export const agentDelete = defineChannel<{ slug: string }, void>("agents:delete");
+export const channelDelete = defineChannel<{ slug: string }, void>("channels:delete");
 export const commandDelete = defineChannel<{ slug: string }, void>("commands:delete");
 // Fired by the host whenever agents/commands change on disk so the picker /
 // palette can refresh without polling.

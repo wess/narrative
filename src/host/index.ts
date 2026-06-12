@@ -15,17 +15,27 @@ import { PROVIDERS } from "../shared/providers.ts";
 import type { AiResult, SearchHit, StohrSyncResult, VaultInfo } from "../shared/types.ts";
 import {
   createAgent,
+  createChannel,
   createCommand,
+  createProject,
   deleteAgent,
+  deleteChannel,
   deleteCommand,
+  deleteProject,
   listAgents,
+  listChannels,
   listCommands,
+  listProjects,
   readAgentSource,
+  readChannelSource,
   readCommandSource,
   runAgent,
   saveAgent,
+  saveChannel,
   saveCommand,
+  suggestChannelForProject,
 } from "./agents/index.ts";
+import { closeMemory, memoryContext, rememberTurn } from "./agents/memory.ts";
 import { buildProvider, SYSTEM_PROMPT } from "./ai.ts";
 import menu from "./menu.ts";
 import * as repo from "./pages.ts";
@@ -98,7 +108,9 @@ const folderIsEmpty = async (path: string): Promise<boolean> => {
 // webview to reload. Returns null when the folder can't be opened.
 const openByPath = async (root: string, announce: boolean): Promise<VaultInfo | null> => {
   try {
+    const previousRoot = currentVault()?.root;
     const vault = await openVault(root);
+    if (previousRoot) closeMemory(previousRoot);
     await recents.remember(vault.root, vault.name);
     const info: VaultInfo = { root: vault.root, name: vault.name };
     if (announce) emit(ch.vaultChanged, info);
@@ -490,13 +502,16 @@ handle(ch.aiCancel, ({ requestId }) => {
 
 handle(
   ch.aiChat,
-  async ({ requestId, messages, pageId, useVault, agentSlug }): Promise<AiResult> => {
+  async ({ requestId, messages, pageId, useVault, agentSlug, channelSlug }): Promise<AiResult> => {
     const vault = currentVault();
 
     // Resolve the requested agent up front so we can honour its `provider` /
     // `model` overrides when building the live provider for this turn.
     const agents = vault ? await listAgents(vault.root) : [];
     const agent = agentSlug ? (agents.find((a) => a.slug === agentSlug) ?? null) : null;
+    const channels = vault ? await listChannels(vault.root) : [];
+    const channel = channelSlug ? (channels.find((c) => c.slug === channelSlug) ?? null) : null;
+    const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
 
     let provider: Provider;
     try {
@@ -511,6 +526,29 @@ handle(
     // Page context and RAG context are appended whether or not an agent is
     // chosen — the chat surface controls those toggles independently.
     let contextSystem = "";
+    if (channel) {
+      const members = channel.agents
+        .map((slug) => agents.find((a) => a.slug === slug)?.name ?? slug)
+        .join(", ");
+      const projects = vault
+        ? (await listProjects(vault.root)).filter((project) =>
+            channel.projects.includes(project.slug),
+          )
+        : [];
+      contextSystem += [
+        `Active channel: ${channel.name}`,
+        channel.description ? `Description: ${channel.description}` : "",
+        channel.brief ? `Brief:\n${channel.brief}` : "",
+        `Routing mode: ${channel.mode}`,
+        members ? `Member agents: ${members}` : "",
+        projects.length > 0
+          ? `Linked projects:\n${projects.map((project) => `- ${project.name}: ${project.path}`).join("\n")}`
+          : "",
+        channel.context.length > 0 ? `Declared context: ${channel.context.join(", ")}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
     if (pageId !== undefined && vault) {
       const page = repo.getPage(vault.db, pageId);
       if (page) {
@@ -529,6 +567,13 @@ handle(
         }
       }
     }
+    if (vault) {
+      const remembered = await memoryContext(vault.root, {
+        channelSlug: channel?.slug,
+        agentSlug: agent?.slug,
+      });
+      if (remembered) contextSystem += `${contextSystem ? "\n\n" : ""}${remembered}`;
+    }
 
     const controller = new AbortController();
     aborts.set(requestId, controller);
@@ -537,8 +582,9 @@ handle(
       // With an agent, run the streaming tool-call loop; without one, fall
       // back to the original plain-chat stream so the assistant still works
       // before the user has authored any agents.
+      let result: AiResult;
       if (agent && vault) {
-        return await runAgent({
+        result = await runAgent({
           provider,
           ctx: {
             vault,
@@ -551,22 +597,31 @@ handle(
           contextSystem,
           signal: controller.signal,
         });
-      }
-
-      const system = contextSystem ? `${SYSTEM_PROMPT}\n\n${contextSystem}` : SYSTEM_PROMPT;
-      for await (const chunk of provider.chatStream({
-        messages,
-        system,
-        signal: controller.signal,
-      })) {
-        if (chunk.delta) {
-          full += chunk.delta;
-          emit(ch.aiChunk, { requestId, delta: chunk.delta, done: false });
+      } else {
+        const system = contextSystem ? `${SYSTEM_PROMPT}\n\n${contextSystem}` : SYSTEM_PROMPT;
+        for await (const chunk of provider.chatStream({
+          messages,
+          system,
+          signal: controller.signal,
+        })) {
+          if (chunk.delta) {
+            full += chunk.delta;
+            emit(ch.aiChunk, { requestId, delta: chunk.delta, done: false });
+          }
+          if (chunk.done) break;
         }
-        if (chunk.done) break;
+        emit(ch.aiChunk, { requestId, delta: "", done: true });
+        result = { ok: true, content: full };
       }
-      emit(ch.aiChunk, { requestId, delta: "", done: true });
-      return { ok: true, content: full };
+      if (vault && lastUser && result.content.trim()) {
+        await rememberTurn(vault.root, {
+          channelSlug: channel?.slug,
+          agentSlug: agent?.slug,
+          user: lastUser,
+          assistant: result.content,
+        });
+      }
+      return result;
     } catch (e) {
       emit(ch.aiChunk, { requestId, delta: "", done: true });
       return { ok: false, content: full, error: (e as Error).message };
@@ -577,19 +632,52 @@ handle(
 );
 
 // --- agent IDE ------------------------------------------------------------
-// Native agents and commands live in `.narrative/agents/` and
-// `.narrative/commands/` inside the open vault — invisible to the page tree
+// Native agents, channels, and commands live in `.narrative/` inside the open vault —
+// invisible to the page tree
 // (scanner ignores dotfolders), but they travel with the vault.
 
 handle(ch.agentList, () => withVault((v) => listAgents(v.root), []));
+handle(ch.channelList, () => withVault((v) => listChannels(v.root), []));
 handle(ch.commandList, () => withVault((v) => listCommands(v.root), []));
 handle(ch.toolList, () => listToolDefs());
+handle(ch.projectList, () => withVault((v) => listProjects(v.root), []));
+
+handle(ch.projectPick, async () =>
+  withVault(async (v) => {
+    const path = await openFolder({ title: "Add Project Folder" });
+    if (!path) return null;
+    return createProject(v.root, path);
+  }, null),
+);
+
+handle(ch.projectDelete, ({ slug }) =>
+  withVault(async (v) => {
+    await deleteProject(v.root, slug);
+    emit(ch.agentsChanged, undefined);
+  }, undefined),
+);
+
+handle(ch.projectSuggestChannel, ({ slug }) =>
+  withVault(async (v) => {
+    const result = await suggestChannelForProject(v.root, slug);
+    if (result) emit(ch.agentsChanged, undefined);
+    return result;
+  }, null),
+);
 
 handle(ch.agentCreate, ({ name }) =>
   withVault(async (v) => {
     const agent = await createAgent(v.root, name);
     if (agent) emit(ch.agentsChanged, undefined);
     return agent;
+  }, null),
+);
+
+handle(ch.channelCreate, ({ name }) =>
+  withVault(async (v) => {
+    const channel = await createChannel(v.root, name);
+    if (channel) emit(ch.agentsChanged, undefined);
+    return channel;
   }, null),
 );
 
@@ -603,6 +691,8 @@ handle(ch.commandCreate, ({ name }) =>
 
 handle(ch.agentSource, ({ slug }) => withVault((v) => readAgentSource(v.root, slug), null));
 
+handle(ch.channelSource, ({ slug }) => withVault((v) => readChannelSource(v.root, slug), null));
+
 handle(ch.commandSource, ({ slug }) => withVault((v) => readCommandSource(v.root, slug), null));
 
 handle(ch.agentSave, ({ slug, body }) =>
@@ -610,6 +700,14 @@ handle(ch.agentSave, ({ slug, body }) =>
     const agent = await saveAgent(v.root, slug, body);
     if (agent) emit(ch.agentsChanged, undefined);
     return agent;
+  }, null),
+);
+
+handle(ch.channelSave, ({ slug, body }) =>
+  withVault(async (v) => {
+    const channel = await saveChannel(v.root, slug, body);
+    if (channel) emit(ch.agentsChanged, undefined);
+    return channel;
   }, null),
 );
 
@@ -624,6 +722,13 @@ handle(ch.commandSave, ({ slug, body }) =>
 handle(ch.agentDelete, ({ slug }) =>
   withVault(async (v) => {
     await deleteAgent(v.root, slug);
+    emit(ch.agentsChanged, undefined);
+  }, undefined),
+);
+
+handle(ch.channelDelete, ({ slug }) =>
+  withVault(async (v) => {
+    await deleteChannel(v.root, slug);
     emit(ch.agentsChanged, undefined);
   }, undefined),
 );
@@ -690,6 +795,8 @@ onMenu("vault:switch", () => emit(ch.runCommand, "vault-switch"));
 
 onMenu("app:quit", async () => {
   win.save();
+  const vault = currentVault();
+  if (vault) closeMemory(vault.root);
   await closeVault();
   process.exit(0);
 });

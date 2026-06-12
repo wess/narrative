@@ -4,8 +4,12 @@ import { Toaster } from "@basket/ui/toast";
 import { useEffect, useMemo } from "react";
 import * as ch from "../shared/channels.ts";
 import { AgentEditor } from "./components/agenteditor.tsx";
+import { AgentProfile } from "./components/agentprofile.tsx";
+import { AgentWizard } from "./components/agentwizard.tsx";
 import { AiChat } from "./components/aichat.tsx";
 import { Backlinks } from "./components/backlinks.tsx";
+import { ChannelProfile } from "./components/channelprofile.tsx";
+import { ChannelWizard } from "./components/channelwizard.tsx";
 import { CommandPalette } from "./components/commandpalette.tsx";
 import { ContextMenuHost } from "./components/contextmenu.tsx";
 import { Editor } from "./components/editor.tsx";
@@ -313,6 +317,10 @@ export const App = () => {
       <Settings />
       <CommandPalette />
       <AgentEditor />
+      <AgentProfile />
+      <AgentWizard />
+      <ChannelProfile />
+      <ChannelWizard />
       <ContextMenuHost />
       <HoverPreview />
       <Toaster />

@@ -76,6 +76,13 @@ describe("search: operators", () => {
     expect(found(db, "/f.x/")).toEqual([idOf.Foxes]);
   });
 
+  test("unsafe regex patterns are ignored instead of evaluated", () => {
+    const { db } = makeVault([
+      { path: "a.md", title: "Long", body: `${"a".repeat(500)}!` },
+    ]);
+    expect(found(db, "/(a+)+$/")).toEqual([]);
+  });
+
   test("filtered operators exclude archived pages", () => {
     const { db, idOf } = vault();
     // "Archived Animal" is tagged `animal` but archived — it must not appear.

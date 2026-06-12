@@ -183,6 +183,31 @@ export type CommandDef = {
   readonly prompt: string; // body — sent as the user turn
 };
 
+export type ChannelMode = "roundtable" | "focus" | "manual";
+
+// A project/task room — `.narrative/channels/<slug>.md` with frontmatter.
+// Channels collect one or more agents behind a named working context.
+export type ChannelDef = {
+  readonly slug: string;
+  readonly path: string;
+  readonly name: string;
+  readonly description: string;
+  readonly icon: string;
+  readonly agents: readonly string[]; // agent slugs assigned to the channel
+  readonly mode: ChannelMode; // how chat routes messages to members
+  readonly context: readonly string[]; // linked page titles / folders, for later retrieval
+  readonly projects: readonly string[]; // linked project slugs
+  readonly brief: string; // body, after frontmatter
+};
+
+export type ProjectDef = {
+  readonly slug: string;
+  readonly name: string;
+  readonly path: string;
+  readonly description: string;
+  readonly channelSlug: string | null;
+};
+
 export type ToolCallStatus = "pending" | "ok" | "error";
 
 // One tool invocation inside an assistant turn. Streamed to the webview as

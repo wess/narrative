@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleAlert,
+  Hash,
   Library,
   Loader2,
   Pencil,
@@ -95,7 +96,7 @@ const ToolCallCard = ({ call }: { call: ToolCall }) => {
 };
 
 const AgentPicker = () => {
-  const { agents, chat } = useApp();
+  const { agents, channels, chat } = useApp();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -109,16 +110,28 @@ const AgentPicker = () => {
   }, [open]);
 
   const active = chat.agentSlug ? (agents.find((a) => a.slug === chat.agentSlug) ?? null) : null;
+  const activeChannel = chat.channelSlug
+    ? (channels.find((c) => c.slug === chat.channelSlug) ?? null)
+    : null;
 
-  const pick = (slug: string | null) => {
+  const pickAgent = (slug: string | null) => {
     actions.setAgent(slug);
+    setOpen(false);
+  };
+
+  const pickChannel = (slug: string) => {
+    actions.setChannel(slug);
     setOpen(false);
   };
 
   const createNew = async () => {
     setOpen(false);
-    const name = window.prompt("Agent name:", "New Agent");
-    if (name?.trim()) await actions.createAgentFile(name.trim());
+    actions.openAgentWizard();
+  };
+
+  const createChannel = async () => {
+    setOpen(false);
+    actions.openChannelWizard();
   };
 
   return (
@@ -129,8 +142,12 @@ const AgentPicker = () => {
         onClick={() => setOpen((v) => !v)}
         title="Switch agent"
       >
-        <span className="aichat-agent-icon">{active?.icon ?? "\u{1F916}"}</span>
-        <span className="aichat-agent-label">{active?.name ?? "Plain assistant"}</span>
+        <span className="aichat-agent-icon">
+          {activeChannel?.icon ?? active?.icon ?? "\u{1F916}"}
+        </span>
+        <span className="aichat-agent-label">
+          {activeChannel?.name ?? active?.name ?? "Plain assistant"}
+        </span>
         <ChevronDown size={11} />
       </button>
       {open ? (
@@ -138,8 +155,8 @@ const AgentPicker = () => {
           <button
             type="button"
             className="aichat-agent-opt"
-            data-active={chat.agentSlug === null}
-            onClick={() => pick(null)}
+            data-active={chat.agentSlug === null && chat.channelSlug === null}
+            onClick={() => pickAgent(null)}
           >
             <span className="aichat-agent-icon">{"\u{1F4AC}"}</span>
             <span className="aichat-agent-opt-text">
@@ -153,7 +170,7 @@ const AgentPicker = () => {
               key={agent.slug}
               className="aichat-agent-opt"
               data-active={chat.agentSlug === agent.slug}
-              onClick={() => pick(agent.slug)}
+              onClick={() => pickAgent(agent.slug)}
             >
               <span className="aichat-agent-icon">{agent.icon}</span>
               <span className="aichat-agent-opt-text">
@@ -176,9 +193,42 @@ const AgentPicker = () => {
               </button>
             </button>
           ))}
+          {channels.length > 0 ? <div className="aichat-agent-sep" /> : null}
+          {channels.map((channel) => (
+            <button
+              type="button"
+              key={channel.slug}
+              className="aichat-agent-opt"
+              data-active={chat.channelSlug === channel.slug}
+              onClick={() => pickChannel(channel.slug)}
+            >
+              <span className="aichat-agent-icon">{channel.icon || "\u{1F4AC}"}</span>
+              <span className="aichat-agent-opt-text">
+                <span className="aichat-agent-opt-name">{channel.name}</span>
+                <span className="aichat-agent-opt-desc">
+                  {channel.description || `${channel.agents.length} member agent(s).`}
+                </span>
+              </span>
+              <button
+                type="button"
+                className="aichat-agent-opt-edit"
+                title="Channel profile"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(false);
+                  actions.openChannelProfile(channel.slug);
+                }}
+              >
+                <Hash size={11} />
+              </button>
+            </button>
+          ))}
           <div className="aichat-agent-sep" />
           <button type="button" className="aichat-agent-new" onClick={createNew}>
             <Plus size={11} /> New agent…
+          </button>
+          <button type="button" className="aichat-agent-new" onClick={createChannel}>
+            <Hash size={11} /> New channel…
           </button>
         </div>
       ) : null}
@@ -187,7 +237,7 @@ const AgentPicker = () => {
 };
 
 export const AiChat = () => {
-  const { chat, aiConfig, activePage, agents, commands } = useApp();
+  const { chat, aiConfig, activePage, agents, channels, commands } = useApp();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -218,6 +268,9 @@ export const AiChat = () => {
   const needsKey = aiConfig != null && PROVIDERS[aiConfig.provider].requiresKey && !aiConfig.hasKey;
   const activeAgent = chat.agentSlug
     ? (agents.find((a) => a.slug === chat.agentSlug) ?? null)
+    : null;
+  const activeChannel = chat.channelSlug
+    ? (channels.find((c) => c.slug === chat.channelSlug) ?? null)
     : null;
 
   return (
@@ -262,7 +315,10 @@ export const AiChat = () => {
               {activeAgent
                 ? activeAgent.description ||
                   `Chat with ${activeAgent.name}. Type "/" to run a command.`
-                : 'Ask anything — pick an agent above to give the assistant tools, or type "/" to run a command.'}
+                : activeChannel
+                  ? activeChannel.description ||
+                    `Chat in ${activeChannel.name} with ${activeChannel.agents.length} agent(s).`
+                  : 'Ask anything — pick an agent above to give the assistant tools, or type "/" to run a command.'}
             </p>
             {needsKey ? (
               <button type="button" className="aichat-cta" onClick={() => actions.openSettings()}>
@@ -346,9 +402,11 @@ export const AiChat = () => {
             className="aichat-input"
             value={input}
             placeholder={
-              activeAgent
-                ? `Message ${activeAgent.name}… (/ for commands)`
-                : "Message the assistant… (/ for commands)"
+              activeChannel
+                ? `Message ${activeChannel.name}…`
+                : activeAgent
+                  ? `Message ${activeAgent.name}… (/ for commands)`
+                  : "Message the assistant… (/ for commands)"
             }
             rows={2}
             onChange={(e) => onInputChange(e.target.value)}

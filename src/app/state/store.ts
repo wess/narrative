@@ -6,12 +6,14 @@ import type {
   AppStats,
   Backlink,
   Backlinks,
+  ChannelDef,
   ChatMessage,
   CommandDef,
   EmbedStatus,
   GraphData,
   Page,
   PageMeta,
+  ProjectDef,
   SearchHit,
   StohrStatus,
   TagCount,
@@ -32,11 +34,13 @@ export type ChatState = {
   readonly useVault: boolean;
   // Slug of the active agent, or null to use the plain assistant.
   readonly agentSlug: string | null;
+  // Slug of the active channel. When set, chat fans out to its member agents.
+  readonly channelSlug: string | null;
 };
 
 export type AgentEditorState = {
   readonly open: boolean;
-  readonly kind: "agent" | "command";
+  readonly kind: "agent" | "channel" | "command";
   readonly slug: string | null;
   readonly path: string;
   readonly body: string;
@@ -86,9 +90,15 @@ export type AppState = {
   readonly stohr: StohrStatus | null;
   readonly chat: ChatState;
   readonly agents: readonly AgentDef[];
+  readonly channels: readonly ChannelDef[];
+  readonly projects: readonly ProjectDef[];
   readonly commands: readonly CommandDef[];
   readonly toolDefs: readonly AgentToolDef[];
   readonly agentEditor: AgentEditorState | null;
+  readonly agentWizardOpen: boolean;
+  readonly agentProfileSlug: string | null;
+  readonly channelWizardOpen: boolean;
+  readonly channelProfileSlug: string | null;
   readonly commandPaletteOpen: boolean;
 };
 
@@ -156,11 +166,18 @@ const initial: AppState = {
     useContext: true,
     useVault: readPref<boolean>("aiUseVault", false),
     agentSlug: readPref<string | null>("aiAgent", null),
+    channelSlug: readPref<string | null>("aiChannel", null),
   },
   agents: [],
+  channels: [],
+  projects: [],
   commands: [],
   toolDefs: [],
   agentEditor: null,
+  agentWizardOpen: false,
+  agentProfileSlug: null,
+  channelWizardOpen: false,
+  channelProfileSlug: null,
   commandPaletteOpen: false,
 };
 

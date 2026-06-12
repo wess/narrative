@@ -125,6 +125,11 @@ type ParsedQuery = {
   regex: RegExp | null;
 };
 
+const unsafeRegex = (source: string): boolean =>
+  source.length > 160 ||
+  /\([^)]*[+*][^)]*\)[+*{]/.test(source) ||
+  /\([^)]*\{[^)]*\}[^)]*\)[+*{]/.test(source);
+
 const parseQuery = (raw: string): ParsedQuery => {
   let rest = ` ${raw} `;
   const tags: string[] = [];
@@ -134,7 +139,10 @@ const parseQuery = (raw: string): ParsedQuery => {
   const reMatch = /\s\/(.+?)\/([a-z]*)\s/.exec(rest);
   if (reMatch) {
     try {
-      regex = new RegExp(reMatch[1] ?? "", (reMatch[2] ?? "").includes("i") ? "im" : "m");
+      const source = reMatch[1] ?? "";
+      regex = unsafeRegex(source)
+        ? null
+        : new RegExp(source, (reMatch[2] ?? "").includes("i") ? "im" : "m");
     } catch {
       regex = null;
     }

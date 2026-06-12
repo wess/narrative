@@ -25,6 +25,18 @@ const ancestorsOf = (id: number): number[] => {
   return path;
 };
 
+export type AgentSourceInput = {
+  readonly name: string;
+  readonly source: string;
+  readonly activate?: boolean;
+};
+
+export type ChannelSourceInput = {
+  readonly name: string;
+  readonly source: string;
+  readonly activate?: boolean;
+};
+
 const refreshTree = async (): Promise<void> => {
   const [tree, pinned, recents, dailies, templates, tags, stats] = await Promise.all([
     invoke(ch.getTree, undefined),
@@ -546,11 +558,18 @@ export const actions = {
     setState({ aiOpen });
   },
 
+  openAi: (): void => {
+    writePref("aiOpen", true);
+    setState({ aiOpen: true });
+  },
+
   // --- agents + commands -------------------------------------------------
 
   refreshAgents: async (): Promise<void> => {
-    const [agents, commands, toolDefs] = await Promise.all([
+    const [agents, channels, projects, commands, toolDefs] = await Promise.all([
       invoke(ch.agentList, undefined),
+      invoke(ch.channelList, undefined),
+      invoke(ch.projectList, undefined),
       invoke(ch.commandList, undefined),
       invoke(ch.toolList, undefined),
     ]);
@@ -558,19 +577,73 @@ export const actions = {
       // If the active agent vanished, fall back to the plain assistant.
       const stillThere = s.chat.agentSlug ? agents.some((a) => a.slug === s.chat.agentSlug) : true;
       const agentSlug = stillThere ? s.chat.agentSlug : null;
+      const channelStillThere = s.chat.channelSlug
+        ? channels.some((c) => c.slug === s.chat.channelSlug)
+        : true;
+      const channelSlug = channelStillThere ? s.chat.channelSlug : null;
+      const profileStillThere = s.agentProfileSlug
+        ? agents.some((a) => a.slug === s.agentProfileSlug)
+        : true;
+      const channelProfileStillThere = s.channelProfileSlug
+        ? channels.some((c) => c.slug === s.channelProfileSlug)
+        : true;
       if (!stillThere) writePref("aiAgent", null);
+      if (!channelStillThere) writePref("aiChannel", null);
       return {
         agents,
+        channels,
+        projects,
         commands,
         toolDefs,
-        chat: { ...s.chat, agentSlug },
+        agentProfileSlug: profileStillThere ? s.agentProfileSlug : null,
+        channelProfileSlug: channelProfileStillThere ? s.channelProfileSlug : null,
+        chat: { ...s.chat, agentSlug, channelSlug },
       };
     });
   },
 
   setAgent: (agentSlug: string | null): void => {
     writePref("aiAgent", agentSlug);
-    setState((s) => ({ chat: { ...s.chat, agentSlug } }));
+    writePref("aiChannel", null);
+    setState((s) => ({ chat: { ...s.chat, agentSlug, channelSlug: null } }));
+  },
+
+  setChannel: (channelSlug: string | null): void => {
+    writePref("aiChannel", channelSlug);
+    writePref("aiAgent", null);
+    setState((s) => ({ chat: { ...s.chat, channelSlug, agentSlug: null } }));
+  },
+
+  openAgentWizard: (): void => setState({ agentWizardOpen: true }),
+  closeAgentWizard: (): void => setState({ agentWizardOpen: false }),
+  openAgentProfile: (slug: string): void => setState({ agentProfileSlug: slug }),
+  closeAgentProfile: (): void => setState({ agentProfileSlug: null }),
+  openChannelWizard: (): void => setState({ channelWizardOpen: true }),
+  closeChannelWizard: (): void => setState({ channelWizardOpen: false }),
+  openChannelProfile: (slug: string): void => setState({ channelProfileSlug: slug }),
+  closeChannelProfile: (): void => setState({ channelProfileSlug: null }),
+
+  addProject: async (): Promise<void> => {
+    const project = await invoke(ch.projectPick, undefined);
+    if (!project) return;
+    await actions.refreshAgents();
+    toast.success("Project added");
+  },
+
+  deleteProject: async (slug: string): Promise<void> => {
+    await invoke(ch.projectDelete, { slug });
+    await actions.refreshAgents();
+    toast.success("Project removed");
+  },
+
+  suggestChannelForProject: async (slug: string): Promise<void> => {
+    const result = await invoke(ch.projectSuggestChannel, { slug });
+    if (!result) return;
+    await actions.refreshAgents();
+    actions.setChannel(result.channel.slug);
+    actions.openAi();
+    setState({ channelProfileSlug: result.channel.slug });
+    toast.success("Channel suggested");
   },
 
   createAgentFile: async (name: string): Promise<void> => {
@@ -581,6 +654,43 @@ export const actions = {
     toast.success("Agent created");
   },
 
+  createAgentFromSource: async ({
+    name,
+    source,
+    activate = true,
+  }: AgentSourceInput): Promise<void> => {
+    const agent = await invoke(ch.agentCreate, { name });
+    if (!agent) return;
+    const saved = await invoke(ch.agentSave, { slug: agent.slug, body: source });
+    await actions.refreshAgents();
+    if (activate && saved) {
+      actions.setAgent(saved.slug);
+      writePref("aiOpen", true);
+      setState({ aiOpen: true });
+      setState({ agentProfileSlug: saved.slug });
+    }
+    setState({ agentWizardOpen: false });
+    toast.success("Agent created");
+  },
+
+  createChannelFromSource: async ({
+    name,
+    source,
+    activate = true,
+  }: ChannelSourceInput): Promise<void> => {
+    const channel = await invoke(ch.channelCreate, { name });
+    if (!channel) return;
+    const saved = await invoke(ch.channelSave, { slug: channel.slug, body: source });
+    await actions.refreshAgents();
+    if (activate && saved) {
+      actions.setChannel(saved.slug);
+      actions.openAi();
+      setState({ channelProfileSlug: saved.slug });
+    }
+    setState({ channelWizardOpen: false });
+    toast.success("Channel created");
+  },
+
   createCommandFile: async (name: string): Promise<void> => {
     const command = await invoke(ch.commandCreate, { name });
     if (!command) return;
@@ -589,11 +699,13 @@ export const actions = {
     toast.success("Command created");
   },
 
-  openAgentEditor: async (kind: "agent" | "command", slug: string): Promise<void> => {
+  openAgentEditor: async (kind: "agent" | "channel" | "command", slug: string): Promise<void> => {
     const source =
       kind === "agent"
         ? await invoke(ch.agentSource, { slug })
-        : await invoke(ch.commandSource, { slug });
+        : kind === "channel"
+          ? await invoke(ch.channelSource, { slug })
+          : await invoke(ch.commandSource, { slug });
     if (!source) return;
     setState({
       agentEditor: { open: true, kind, slug, path: source.path, body: source.body, dirty: false },
@@ -614,6 +726,8 @@ export const actions = {
     if (!editor || editor.slug === null) return;
     if (editor.kind === "agent") {
       await invoke(ch.agentSave, { slug: editor.slug, body: editor.body });
+    } else if (editor.kind === "channel") {
+      await invoke(ch.channelSave, { slug: editor.slug, body: editor.body });
     } else {
       await invoke(ch.commandSave, { slug: editor.slug, body: editor.body });
     }
@@ -622,8 +736,9 @@ export const actions = {
     toast.success("Saved");
   },
 
-  deleteAgentFile: async (kind: "agent" | "command", slug: string): Promise<void> => {
+  deleteAgentFile: async (kind: "agent" | "channel" | "command", slug: string): Promise<void> => {
     if (kind === "agent") await invoke(ch.agentDelete, { slug });
+    else if (kind === "channel") await invoke(ch.channelDelete, { slug });
     else await invoke(ch.commandDelete, { slug });
     await actions.refreshAgents();
     setState((s) => (s.agentEditor && s.agentEditor.slug === slug ? { agentEditor: null } : {}));
@@ -693,6 +808,7 @@ export const actions = {
         useContext: s.chat.useContext,
         useVault: s.chat.useVault,
         agentSlug: s.chat.agentSlug,
+        channelSlug: s.chat.channelSlug,
       },
     })),
 
@@ -710,58 +826,83 @@ export const actions = {
       const lastIdx = msgs.length - 1;
       const last = msgs[lastIdx];
       if (!last || last.role !== "assistant") return {};
-      msgs[lastIdx] = { role: "assistant", content: last.content + delta };
+      msgs[lastIdx] = { ...last, content: last.content + delta };
       return { chat: { ...s.chat, messages: msgs } };
     });
   },
 
   sendChat: async (text: string): Promise<void> => {
     const trimmed = text.trim();
-    const { chat, activeId } = getState();
+    const { chat, activeId, channels, agents } = getState();
     if (!trimmed || chat.streaming) return;
 
-    const convo: ChatMessage[] = [...chat.messages, { role: "user", content: trimmed }];
-    const requestId = `c${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setState({
-      chat: {
-        ...chat,
-        messages: [
-          ...convo,
-          { role: "assistant", content: "", agentSlug: chat.agentSlug ?? undefined },
-        ],
-        streaming: true,
+    const channel = chat.channelSlug
+      ? (channels.find((c) => c.slug === chat.channelSlug) ?? null)
+      : null;
+    const channelMembers = channel
+      ? channel.agents.filter((slug) => agents.some((agent) => agent.slug === slug))
+      : [];
+    const agentSlugs =
+      channel && channelMembers.length > 0
+        ? channel.mode === "roundtable"
+          ? channelMembers
+          : channel.mode === "focus" || channel.mode === "manual"
+            ? channelMembers.slice(0, 1)
+            : channelMembers
+        : [chat.agentSlug].filter((slug): slug is string => slug !== null);
+    const responders = agentSlugs.length > 0 ? agentSlugs : [null];
+
+    let transcript: ChatMessage[] = [...chat.messages, { role: "user", content: trimmed }];
+    setState({ chat: { ...chat, messages: transcript, streaming: true, requestId: null } });
+
+    for (const agentSlug of responders) {
+      const requestId = `c${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      setState((s) => ({
+        chat: {
+          ...s.chat,
+          messages: [
+            ...s.chat.messages,
+            { role: "assistant", content: "", agentSlug: agentSlug ?? undefined },
+          ],
+          requestId,
+        },
+      }));
+
+      const result = await invoke(ch.aiChat, {
         requestId,
-      },
-    });
+        messages: transcript,
+        pageId: chat.useContext && activeId !== null ? activeId : undefined,
+        useVault: chat.useVault,
+        agentSlug: agentSlug ?? undefined,
+        channelSlug: channel?.slug,
+      });
 
-    const result = await invoke(ch.aiChat, {
-      requestId,
-      messages: convo,
-      pageId: chat.useContext && activeId !== null ? activeId : undefined,
-      useVault: chat.useVault,
-      agentSlug: chat.agentSlug ?? undefined,
-    });
+      let finalMessage: ChatMessage | null = null;
+      setState((s) => {
+        if (s.chat.requestId !== requestId) return {};
+        const msgs = s.chat.messages.slice();
+        const lastIdx = msgs.length - 1;
+        const last = msgs[lastIdx];
+        const streamed = last?.content ?? "";
+        const content = result.ok
+          ? result.content || streamed
+          : streamed || `⚠️ ${result.error ?? "AI request failed"}`;
+        const toolCalls = result.toolCalls ?? last?.toolCalls;
+        finalMessage = {
+          role: "assistant",
+          content,
+          ...(toolCalls && toolCalls.length > 0 ? { toolCalls } : {}),
+          ...(last?.agentSlug ? { agentSlug: last.agentSlug } : {}),
+        };
+        msgs[lastIdx] = finalMessage;
+        return { chat: { ...s.chat, messages: msgs, requestId: null } };
+      });
 
-    setState((s) => {
-      if (s.chat.requestId !== requestId) return {};
-      const msgs = s.chat.messages.slice();
-      const lastIdx = msgs.length - 1;
-      const last = msgs[lastIdx];
-      const streamed = last?.content ?? "";
-      const content = result.ok
-        ? result.content || streamed
-        : streamed || `⚠️ ${result.error ?? "AI request failed"}`;
-      const toolCalls = result.toolCalls ?? last?.toolCalls;
-      msgs[lastIdx] = {
-        role: "assistant",
-        content,
-        ...(toolCalls && toolCalls.length > 0 ? { toolCalls } : {}),
-        ...(last?.agentSlug ? { agentSlug: last.agentSlug } : {}),
-      };
-      return { chat: { ...s.chat, messages: msgs, streaming: false, requestId: null } };
-    });
+      if (finalMessage) transcript = [...transcript, finalMessage];
+      if (!result.ok && !result.content) toast.error(result.error ?? "AI request failed");
+    }
 
-    if (!result.ok && !result.content) toast.error(result.error ?? "AI request failed");
+    setState((s) => ({ chat: { ...s.chat, streaming: false, requestId: null } }));
   },
 
   summarizePage: async (id: number): Promise<void> => {

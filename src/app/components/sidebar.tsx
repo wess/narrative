@@ -4,15 +4,20 @@ import {
   Calendar,
   ChevronDown,
   FileText,
+  FolderOpen,
   FolderPlus,
   Hash,
+  Info,
   PanelLeftClose,
+  Pencil,
   Plus,
   Search,
   Settings,
+  Sparkles,
+  Trash2,
 } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
-import type { PageMeta } from "../../shared/types.ts";
+import type { AgentDef, ChannelDef, PageMeta, ProjectDef } from "../../shared/types.ts";
 import { openMenu } from "../lib/contextmenu.ts";
 import { buildTagTree } from "../lib/tags.ts";
 import { actions } from "../state/actions.ts";
@@ -71,8 +76,139 @@ const FlatItem = ({ page }: { page: PageMeta }) => {
   );
 };
 
+const AgentItem = ({ agent }: { agent: AgentDef }) => {
+  const { chat } = useApp();
+  const active = chat.agentSlug === agent.slug;
+  return (
+    <div className="side-agent" data-active={active}>
+      <button
+        type="button"
+        className="side-agent-main"
+        title={agent.description || agent.name}
+        onClick={() => actions.openAgentProfile(agent.slug)}
+      >
+        <span className="side-agent-icon">{agent.icon || "\u{1F916}"}</span>
+        <span className="side-agent-text">
+          <span>{agent.name}</span>
+          {agent.provider || agent.model ? (
+            <small>{[agent.provider, agent.model].filter(Boolean).join(" / ")}</small>
+          ) : (
+            <small>App default model</small>
+          )}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="side-agent-edit"
+        title="Agent profile"
+        onClick={() => actions.openAgentProfile(agent.slug)}
+      >
+        <Info size={11} />
+      </button>
+      <button
+        type="button"
+        className="side-agent-edit"
+        title="Edit agent"
+        onClick={() => void actions.openAgentEditor("agent", agent.slug)}
+      >
+        <Pencil size={11} />
+      </button>
+    </div>
+  );
+};
+
+const ChannelItem = ({ channel }: { channel: ChannelDef }) => {
+  const { chat, agents } = useApp();
+  const active = chat.channelSlug === channel.slug;
+  const memberNames = channel.agents
+    .map((slug) => agents.find((agent) => agent.slug === slug)?.name)
+    .filter(Boolean)
+    .join(", ");
+  return (
+    <div className="side-agent" data-active={active}>
+      <button
+        type="button"
+        className="side-agent-main"
+        title={channel.description || channel.name}
+        onClick={() => actions.openChannelProfile(channel.slug)}
+      >
+        <span className="side-agent-icon">{channel.icon || "\u{1F4AC}"}</span>
+        <span className="side-agent-text">
+          <span>{channel.name}</span>
+          <small>{memberNames || "No agents assigned"}</small>
+        </span>
+      </button>
+      <button
+        type="button"
+        className="side-agent-edit"
+        title="Channel profile"
+        onClick={() => actions.openChannelProfile(channel.slug)}
+      >
+        <Info size={11} />
+      </button>
+    </div>
+  );
+};
+
+const ProjectItem = ({ project }: { project: ProjectDef }) => {
+  const { channels } = useApp();
+  const linked = project.channelSlug
+    ? (channels.find((channel) => channel.slug === project.channelSlug) ?? null)
+    : null;
+  return (
+    <div className="side-agent">
+      <button
+        type="button"
+        className="side-agent-main"
+        title={project.path}
+        onClick={() => {
+          if (linked) actions.openChannelProfile(linked.slug);
+        }}
+      >
+        <span className="side-agent-icon">
+          <FolderOpen size={13} />
+        </span>
+        <span className="side-agent-text">
+          <span>{project.name}</span>
+          <small>{linked ? `Channel: ${linked.name}` : project.path}</small>
+        </span>
+      </button>
+      <button
+        type="button"
+        className="side-agent-edit"
+        title="Suggest channel"
+        onClick={() => void actions.suggestChannelForProject(project.slug)}
+      >
+        <Sparkles size={11} />
+      </button>
+      <button
+        type="button"
+        className="side-agent-edit"
+        title="Remove project"
+        onClick={() => {
+          if (window.confirm(`Remove ${project.name}?`)) void actions.deleteProject(project.slug);
+        }}
+      >
+        <Trash2 size={11} />
+      </button>
+    </div>
+  );
+};
+
 export const Sidebar = () => {
-  const { tree, pinned, recents, dailies, templates, tags, stats, search } = useApp();
+  const {
+    tree,
+    pinned,
+    recents,
+    dailies,
+    templates,
+    tags,
+    stats,
+    search,
+    agents,
+    channels,
+    projects,
+  } = useApp();
   const tagTree = useMemo(() => buildTagTree(tags), [tags]);
 
   return (
@@ -173,6 +309,96 @@ export const Sidebar = () => {
       </div>
 
       <footer className="sidebar-foot">
+        <Section
+          label="Projects"
+          count={projects.length}
+          defaultOpen
+          action={
+            <button
+              type="button"
+              className="side-section-add"
+              title="Add project folder"
+              onClick={() => void actions.addProject()}
+            >
+              <Plus size={13} />
+            </button>
+          }
+        >
+          <div className="side-agents">
+            {projects.length > 0 ? (
+              projects.map((project) => <ProjectItem key={project.slug} project={project} />)
+            ) : (
+              <button
+                type="button"
+                className="side-agent-empty"
+                onClick={() => void actions.addProject()}
+              >
+                <FolderOpen size={13} />
+                Add a project folder
+              </button>
+            )}
+          </div>
+        </Section>
+        <Section
+          label="Agents"
+          count={agents.length}
+          defaultOpen
+          action={
+            <button
+              type="button"
+              className="side-section-add"
+              title="Create agent"
+              onClick={() => actions.openAgentWizard()}
+            >
+              <Plus size={13} />
+            </button>
+          }
+        >
+          <div className="side-agents">
+            {agents.length > 0 ? (
+              agents.map((agent) => <AgentItem key={agent.slug} agent={agent} />)
+            ) : (
+              <button
+                type="button"
+                className="side-agent-empty"
+                onClick={() => actions.openAgentWizard()}
+              >
+                <Bot size={13} />
+                Create your first agent
+              </button>
+            )}
+          </div>
+        </Section>
+        <Section
+          label="Channels"
+          count={channels.length}
+          defaultOpen
+          action={
+            <button
+              type="button"
+              className="side-section-add"
+              title="Create channel"
+              onClick={() => actions.openChannelWizard()}
+            >
+              <Plus size={13} />
+            </button>
+          }
+        >
+          <div className="side-agents">
+            {channels.length > 0 ? (
+              channels.map((channel) => <ChannelItem key={channel.slug} channel={channel} />)
+            ) : (
+              <button
+                type="button"
+                className="side-agent-empty"
+                onClick={() => actions.openChannelWizard()}
+              >
+                <Hash size={13} />
+                Create your first channel
+              </button>
+            )}
+          </div>
+        </Section>
         <div className="foot-row">
           <button type="button" className="foot-btn" onClick={() => void actions.createDaily()}>
             <Calendar size={14} />

@@ -38,7 +38,8 @@ export const AgentEditor = () => {
       >
         <header className="agentedit-head">
           <span className="agentedit-title">
-            {kind === "agent" ? "Edit agent" : "Edit command"} — <code>{path}</code>
+            {kind === "agent" ? "Edit agent" : kind === "channel" ? "Edit channel" : "Edit command"}{" "}
+            — <code>{path}</code>
             {dirty ? <span className="agentedit-dirty">●</span> : null}
           </span>
           <span className="agentedit-spacer" />
@@ -84,6 +85,12 @@ export const AgentEditor = () => {
               Frontmatter: <code>name</code>, <code>description</code>, <code>icon</code>,{" "}
               <code>model</code>, <code>provider</code>, <code>tools: [...]</code>. The body is the
               system prompt.
+            </span>
+          ) : kind === "channel" ? (
+            <span>
+              Frontmatter: <code>name</code>, <code>description</code>, <code>icon</code>,{" "}
+              <code>mode</code>, <code>agents: [...]</code>, <code>context: [...]</code>. The body
+              is the channel brief.
             </span>
           ) : (
             <span>

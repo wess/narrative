@@ -26,6 +26,17 @@ const IMG_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
 const LINK_RE = /\[([^\]]+)\]\(([^)\s]+)\)/g;
 const TAG_RE = /(^|[\s(])#([\p{L}\p{N}][\p{L}\p{N}_/-]*)/gu;
 const CODE_TOKEN = /@@CODE(\d+)@@/g;
+const SAFE_LINK_SCHEMES = new Set(["http:", "https:", "mailto:"]);
+const SAFE_IMAGE_SCHEMES = new Set(["http:", "https:", "data:", "blob:"]);
+
+const safeUrl = (raw: string, allowed: ReadonlySet<string>): string => {
+  const trimmed = raw.trim();
+  if (!trimmed) return "#";
+  const scheme = /^([a-z][a-z0-9+.-]*:)/i.exec(trimmed)?.[1]?.toLowerCase();
+  if (scheme && !allowed.has(scheme)) return "#";
+  if (scheme === "data:" && !/^data:image\//i.test(trimmed)) return "#";
+  return escapeHtml(trimmed);
+};
 
 // Inline formatting for a single line / paragraph of text.
 const renderInline = (raw: string): string => {
@@ -56,13 +67,14 @@ const renderInline = (raw: string): string => {
 
   text = text.replace(
     IMG_RE,
-    (_m, alt: string, src: string) => `<img alt="${alt}" src="${src}" />`,
+    (_m, alt: string, src: string) =>
+      `<img alt="${alt}" src="${safeUrl(src, SAFE_IMAGE_SCHEMES)}" />`,
   );
 
   text = text.replace(
     LINK_RE,
     (_m, label: string, url: string) =>
-      `<a class="exlink" href="${url}" data-external="1">${label}</a>`,
+      `<a class="exlink" href="${safeUrl(url, SAFE_LINK_SCHEMES)}" data-external="1">${label}</a>`,
   );
 
   // Footnote references — `[^1]` becomes a small superscript.
