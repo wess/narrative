@@ -125,12 +125,12 @@ jobs:
 
       - name: Verify signature
         run: |
-          codesign --verify --deep --strict --verbose=2 dist/Narrative.app
-          spctl --assess --type execute --verbose dist/Narrative.app || \
+          codesign --verify --deep --strict --verbose=2 dist/Bethink.app
+          spctl --assess --type execute --verbose dist/Bethink.app || \
             echo "spctl assessment failed (expected for ad-hoc / unnotarized builds)"
 
       - name: Upload DMG
-        run: gh release upload "v${{ needs.check-version.outputs.version }}" dist/Narrative.dmg --clobber
+        run: gh release upload "v${{ needs.check-version.outputs.version }}" dist/Bethink.dmg --clobber
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -143,15 +143,15 @@ jobs:
         id: shas
         run: |
           VERSION="${{ needs.check-version.outputs.version }}"
-          URL="https://github.com/wess/narrative/releases/download/v${VERSION}/Narrative.dmg"
+          URL="https://github.com/wess/narrative/releases/download/v${VERSION}/Bethink.dmg"
           for i in $(seq 1 30); do
-            if curl -fsSL -o /tmp/Narrative.dmg "${URL}" 2>/dev/null; then
+            if curl -fsSL -o /tmp/Bethink.dmg "${URL}" 2>/dev/null; then
               break
             fi
-            echo "Waiting for Narrative.dmg... ($i/30)"
+            echo "Waiting for Bethink.dmg... ($i/30)"
             sleep 10
           done
-          SHA=$(sha256sum /tmp/Narrative.dmg | cut -d' ' -f1)
+          SHA=$(sha256sum /tmp/Bethink.dmg | cut -d' ' -f1)
           echo "sha_darwin_arm64=${SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout homebrew tap
@@ -165,38 +165,38 @@ jobs:
         run: |
           VERSION="${{ needs.check-version.outputs.version }}"
           mkdir -p tap/Casks
-          cat > tap/Casks/narrative.rb << 'RUBY'
-          cask "narrative" do
+          cat > tap/Casks/bethink.rb << 'RUBY'
+          cask "bethink" do
             version "VERSION_PLACEHOLDER"
             sha256 "SHA_DARWIN_ARM64_PLACEHOLDER"
 
-            url "https://github.com/wess/narrative/releases/download/v#{version}/Narrative.dmg"
-            name "Narrative"
+            url "https://github.com/wess/narrative/releases/download/v#{version}/Bethink.dmg"
+            name "Bethink"
             desc "Native Markdown knowledge base where every note is a file you own"
             homepage "https://github.com/wess/narrative"
 
             depends_on arch: :arm64
 
-            app "Narrative.app"
+            app "Bethink.app"
 
             zap trash: [
-              "~/Library/Application Support/Narrative",
-              "~/Library/Preferences/io.wess.narrative.plist",
+              "~/Library/Application Support/Bethink",
+              "~/Library/Preferences/io.wess.bethink.plist",
             ]
           end
           RUBY
-          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" tap/Casks/narrative.rb
-          sed -i "s/SHA_DARWIN_ARM64_PLACEHOLDER/${{ steps.shas.outputs.sha_darwin_arm64 }}/g" tap/Casks/narrative.rb
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" tap/Casks/bethink.rb
+          sed -i "s/SHA_DARWIN_ARM64_PLACEHOLDER/${{ steps.shas.outputs.sha_darwin_arm64 }}/g" tap/Casks/bethink.rb
 
       - name: Push updated cask
         run: |
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Casks/narrative.rb
+          git add Casks/bethink.rb
           if git diff --cached --quiet; then
             echo "Cask unchanged — skipping push."
           else
-            git commit -m "Update narrative to v${{ needs.check-version.outputs.version }}"
+            git commit -m "Update bethink to v${{ needs.check-version.outputs.version }}"
             git push
           fi

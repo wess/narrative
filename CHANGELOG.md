@@ -4,6 +4,21 @@ All notable changes to Bethink are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project aims
 to adhere to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-06-15
+
+### Changed
+
+- The app is now named **Bethink** — window title, bundle, the packaged
+  `.app`/`.dmg`, and the Homebrew cask (`brew install bethink`).
+
+### Fixed
+
+- The release workflow referenced the old `Narrative.app`/`Narrative.dmg`
+  artifact names, so the v1.0.0 build signed and notarized successfully but
+  failed at signature verification and never uploaded a DMG. It now matches
+  the `Bethink.*` artifacts `butter bundle` produces, so the notarized DMG
+  ships and the Homebrew cask updates.
+
 ## [1.0.0] - 2026-06-15
 
 ### Added
@@ -90,5 +105,9 @@ to adhere to [Semantic Versioning](https://semver.org/).
 - A standalone Model Context Protocol server exposing the vault to AI clients.
 - An Obsidian-compatible plugin system.
 
-[Unreleased]: https://github.com/wess/bethink/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/wess/bethink/releases/tag/v0.1.0
+[Unreleased]: https://github.com/wess/narrative/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/wess/narrative/compare/v1.0.0...v1.5.0
+[1.0.0]: https://github.com/wess/narrative/compare/v0.1.3...v1.0.0
+[0.1.3]: https://github.com/wess/narrative/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/wess/narrative/compare/v0.1.0...v0.1.2
+[0.1.0]: https://github.com/wess/narrative/releases/tag/v0.1.0
