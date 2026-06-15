@@ -173,7 +173,7 @@ const start = async (): Promise<void> => {
   app.plugins.enablePlugin = (id: string) => setEnabled(id, true);
   app.plugins.disablePlugin = (id: string) => setEnabled(id, false);
 
-  // Keep the workspace's notion of the active file in step with Narrative.
+  // Keep the workspace's notion of the active file in step with Bethink.
   getBridge().subscribe({
     onActiveFile: (id) => {
       const file = id === null ? null : (app.vault.getFiles().find((f) => f.id === id) ?? null);

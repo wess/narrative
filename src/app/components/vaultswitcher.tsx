@@ -30,7 +30,7 @@ export const VaultSwitcher = () => {
         onClick={() => setOpen((v) => !v)}
       >
         <span className="brand-mark">◆</span>
-        <span className="vault-switcher-name">{vault?.name ?? "Narrative"}</span>
+        <span className="vault-switcher-name">{vault?.name ?? "Bethink"}</span>
         <ChevronsUpDown size={13} />
       </button>
       {open ? (

@@ -125,7 +125,7 @@ const AGENT_TEMPLATE = (name: string) => ({
   description: "A new agent.",
   icon: "\u{1F916}",
   tools: ["vault.search", "vault.read"],
-  systemPrompt: `You are ${name}, an assistant working inside the user's Narrative vault.
+  systemPrompt: `You are ${name}, an assistant working inside the user's Bethink vault.
 Be concise. Use tools to ground your answers in real pages, and cite the
 titles you used.`,
 });

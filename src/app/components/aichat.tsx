@@ -216,7 +216,7 @@ const AgentPicker = () => {
                 onClick={(e) => {
                   e.stopPropagation();
                   setOpen(false);
-                  actions.openChannelProfile(channel.slug);
+                  void actions.openChannelProfile(channel.slug);
                 }}
               >
                 <Hash size={11} />

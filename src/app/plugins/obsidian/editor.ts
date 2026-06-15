@@ -1,5 +1,5 @@
 // `Editor` — the plugin editing-surface API. A full `Editor` wraps a single
-// CodeMirror document; Narrative's editor is block-based, so this is a
+// CodeMirror document; Bethink's editor is block-based, so this is a
 // best-effort adapter: it operates on the active page's *markdown string*
 // with a simple line/ch cursor model. `getValue` / `setValue` / `getLine` /
 // range ops are exact; selection ops fall back to the tracked cursor. Edits

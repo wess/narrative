@@ -1,3 +1,4 @@
+import type { MemoryRecord } from "../../shared/types.ts";
 import { closeAgentStore, openAgentStore } from "./store.ts";
 
 export type MemoryScope = "global" | "channel";
@@ -35,6 +36,7 @@ type MemoryRow = {
   readonly content: string;
   readonly source: string;
   readonly weight: number;
+  readonly pinned: number;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -75,6 +77,20 @@ export const addMemory = async (vaultRoot: string, input: MemoryInput): Promise<
   );
 };
 
+const fromRow = (row: MemoryRow): MemoryRecord => ({
+  id: row.id,
+  scope: row.scope,
+  channelSlug: row.channelSlug,
+  agentSlug: row.agentSlug,
+  kind: row.kind,
+  content: row.content,
+  source: row.source,
+  weight: row.weight,
+  pinned: Boolean(row.pinned),
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+});
+
 export const rememberTurn = async (vaultRoot: string, turn: MemoryTurn): Promise<void> => {
   const content = trimContent(
     [`User: ${turn.user.trim()}`, `Assistant: ${turn.assistant.trim()}`].join("\n"),
@@ -100,34 +116,64 @@ export const rememberTurn = async (vaultRoot: string, turn: MemoryTurn): Promise
 export const listGlobalMemories = async (
   vaultRoot: string,
   limit = 8,
-): Promise<readonly MemoryRow[]> => {
+): Promise<readonly MemoryRecord[]> => {
   const db = await openMemory(vaultRoot);
-  return db.query<MemoryRow>(
-    `SELECT * FROM memories
+  return db
+    .query<MemoryRow>(
+      `SELECT * FROM memories
       WHERE scope = 'global'
-      ORDER BY weight DESC, updatedAt DESC, id DESC
+      ORDER BY pinned DESC, weight DESC, updatedAt DESC, id DESC
       LIMIT ?`,
-    limit,
-  );
+      limit,
+    )
+    .map(fromRow);
 };
 
 export const listChannelMemories = async (
   vaultRoot: string,
   channelSlug: string,
   limit = 8,
-): Promise<readonly MemoryRow[]> => {
+): Promise<readonly MemoryRecord[]> => {
   const db = await openMemory(vaultRoot);
-  return db.query<MemoryRow>(
-    `SELECT * FROM memories
+  return db
+    .query<MemoryRow>(
+      `SELECT * FROM memories
       WHERE scope = 'channel' AND channelSlug = ?
-      ORDER BY weight DESC, updatedAt DESC, id DESC
+      ORDER BY pinned DESC, weight DESC, updatedAt DESC, id DESC
       LIMIT ?`,
-    channelSlug,
-    limit,
-  );
+      channelSlug,
+      limit,
+    )
+    .map(fromRow);
 };
 
-const bulletList = (rows: readonly MemoryRow[]): string =>
+export const listMemories = async (vaultRoot: string, limit = 100): Promise<MemoryRecord[]> => {
+  const db = await openMemory(vaultRoot);
+  return db
+    .query<MemoryRow>(
+      `SELECT * FROM memories
+        ORDER BY pinned DESC, updatedAt DESC, id DESC
+        LIMIT ?`,
+      Math.max(1, Math.min(500, Math.floor(limit))),
+    )
+    .map(fromRow);
+};
+
+export const deleteMemory = async (vaultRoot: string, id: number): Promise<void> => {
+  const db = await openMemory(vaultRoot);
+  db.exec("DELETE FROM memories WHERE id = ?", id);
+};
+
+export const setMemoryPinned = async (
+  vaultRoot: string,
+  id: number,
+  pinned: boolean,
+): Promise<void> => {
+  const db = await openMemory(vaultRoot);
+  db.exec("UPDATE memories SET pinned = ?, updatedAt = ? WHERE id = ?", pinned ? 1 : 0, now(), id);
+};
+
+const bulletList = (rows: readonly MemoryRecord[]): string =>
   rows.map((row) => `- ${row.content.replace(/\n/g, "\n  ")}`).join("\n");
 
 export const memoryContext = async (

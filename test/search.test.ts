@@ -2,10 +2,13 @@
 // `/regex/`) back both the search view and MCP. This drives the real search
 // against a throwaway in-memory vault index.
 
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { connect, type DB, migrate } from "@basket/db";
 import { describe, expect, test } from "bun:test";
+import { closeAgentStore, openAgentStore } from "../src/host/agents/store.ts";
 import { nodesTable, tables, tagsTable } from "../src/host/schema.ts";
-import { indexPage, initSearch, runSearch } from "../src/host/search.ts";
+import { indexPage, initSearch, runSearch, runUnifiedSearch } from "../src/host/search.ts";
 
 type Seed = { path: string; title: string; body: string; tags?: string[]; archived?: boolean };
 
@@ -92,5 +95,66 @@ describe("search: operators", () => {
   test("operators combine with plain text", () => {
     const { db, idOf } = vault();
     expect(found(db, "tag:animal brown")).toEqual([idOf.Foxes]);
+  });
+});
+
+describe("search: unified", () => {
+  test("finds pages and durable agent workspace records", async () => {
+    const root = await mkdtemp(`${tmpdir()}/bethinksearch`);
+    const { db } = makeVault([
+      { path: "roadmap.md", title: "Roadmap", body: "The agent harness needs transcripts." },
+    ]);
+    const store = await openAgentStore(root);
+    store.exec(
+      `INSERT INTO agents (slug, name, description, icon, tools, systemPrompt)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+      "planner",
+      "Avery Planner",
+      "Plans agent harness work.",
+      "A",
+      "[]",
+      "Coordinate agent harness tasks.",
+    );
+    store.exec(
+      `INSERT INTO channels (slug, name, description, icon, brief)
+        VALUES (?, ?, ?, ?, ?)`,
+      "buildroom",
+      "Build Room",
+      "Channel for harness development.",
+      "C",
+      "Discuss transcripts and approvals.",
+    );
+    store.exec(
+      `INSERT INTO projects (slug, name, path, description)
+        VALUES (?, ?, ?, ?)`,
+      "harness",
+      "Harness",
+      root,
+      "Agent harness project.",
+    );
+    store.exec(
+      `INSERT INTO memories (scope, content, source)
+        VALUES (?, ?, ?)`,
+      "global",
+      "Remember that transcripts matter for agent harness trust.",
+      "chat",
+    );
+    store.exec(
+      `INSERT INTO channelMessages (channelSlug, role, content)
+        VALUES (?, ?, ?)`,
+      "buildroom",
+      "assistant",
+      "Transcript entry about the agent harness.",
+    );
+
+    const hits = await runUnifiedSearch(root, db, "harness");
+    closeAgentStore(root);
+
+    expect(hits.map((hit) => hit.kind)).toContain("page");
+    expect(hits.map((hit) => hit.kind)).toContain("agent");
+    expect(hits.map((hit) => hit.kind)).toContain("channel");
+    expect(hits.map((hit) => hit.kind)).toContain("project");
+    expect(hits.map((hit) => hit.kind)).toContain("memory");
+    expect(hits.map((hit) => hit.kind)).toContain("transcript");
   });
 });

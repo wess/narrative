@@ -34,7 +34,7 @@ export abstract class TextFileView extends EditableFileView {
   abstract clear(): void;
 
   requestSave(): void {
-    // Narrative persists eagerly elsewhere — nothing queued here.
+    // Bethink persists eagerly elsewhere — nothing queued here.
   }
 }
 

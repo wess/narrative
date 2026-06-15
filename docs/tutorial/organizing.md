@@ -26,7 +26,7 @@ This is a research note. #research #todo
 ```
 
 Tags also **nest**. Try writing `#project/narrative` and `#project/website` in
-a couple of pages — Narrative builds a collapsible tree with `#project` as the
+a couple of pages — Bethink builds a collapsible tree with `#project` as the
 parent.
 
 Open the **Tags view** with **`⌘⇧T`** to browse every tag and its page count.
@@ -51,7 +51,7 @@ mention "todo".
 
 ## Step 4 — Start a daily note
 
-Press **`⌘D`**. Narrative creates (or opens) **today's daily note** — a page
+Press **`⌘D`**. Bethink creates (or opens) **today's daily note** — a page
 named for today's date. Daily notes are ideal for journaling and capturing
 quick thoughts; link out from them to give those thoughts a permanent home
 later.

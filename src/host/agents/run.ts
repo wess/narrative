@@ -8,7 +8,7 @@
 // from rendered markdown so only prose is visible.
 
 import type { Provider } from "@basket/ai";
-import { emit } from "@basket/ipc";
+import { type Event, emit } from "@basket/ipc";
 import * as ch from "../../shared/channels.ts";
 import type { AgentDef, AiResult, ChatMessage, ToolCall } from "../../shared/types.ts";
 import type { ToolContext } from "../tools/index.ts";
@@ -24,13 +24,24 @@ export type RunAgentOptions = {
   readonly messages: readonly ChatMessage[];
   readonly contextSystem: string; // page/RAG context injected by the caller
   readonly signal: AbortSignal;
+  readonly maxTurns?: number;
 };
 
 let counter = 0;
 const newCallId = (): string => `t${Date.now().toString(36)}${(counter++).toString(36)}`;
 
+const emitSafe = <T>(channel: Event<T>, payload: T): void => {
+  try {
+    emit(channel, payload);
+  } catch (e) {
+    if (!String((e as Error).message).includes("Butter runtime not initialized")) throw e;
+  }
+};
+
 export const runAgent = async (opts: RunAgentOptions): Promise<AiResult> => {
   const allowed = resolveTools(opts.agent.tools);
+  const allowedNames = new Set(allowed.map((tool) => tool.name));
+  const maxTurns = Math.max(1, Math.min(32, Math.floor(opts.maxTurns ?? MAX_TURNS)));
   const systemPrompt = [opts.agent.systemPrompt, formatToolPrompt(allowed), opts.contextSystem]
     .filter((p) => p && p.length > 0)
     .join("\n\n");
@@ -38,10 +49,14 @@ export const runAgent = async (opts: RunAgentOptions): Promise<AiResult> => {
   const transcript: ChatMessage[] = [...opts.messages];
   const allCalls: ToolCall[] = [];
   let fullOut = "";
+  let iterations = 0;
+  let completed = false;
 
-  const emitTool = (call: ToolCall) => emit(ch.aiToolCall, { requestId: opts.ctx.requestId, call });
+  const emitTool = (call: ToolCall) =>
+    emitSafe(ch.aiToolCall, { requestId: opts.ctx.requestId, call });
 
-  for (let turn = 0; turn < MAX_TURNS; turn++) {
+  for (let turn = 0; turn < maxTurns; turn++) {
+    iterations = turn + 1;
     let turnText = "";
     try {
       for await (const chunk of opts.provider.chatStream({
@@ -51,7 +66,7 @@ export const runAgent = async (opts: RunAgentOptions): Promise<AiResult> => {
       })) {
         if (chunk.delta) {
           turnText += chunk.delta;
-          emit(ch.aiChunk, {
+          emitSafe(ch.aiChunk, {
             requestId: opts.ctx.requestId,
             delta: chunk.delta,
             done: false,
@@ -60,18 +75,23 @@ export const runAgent = async (opts: RunAgentOptions): Promise<AiResult> => {
         if (chunk.done) break;
       }
     } catch (e) {
-      emit(ch.aiChunk, { requestId: opts.ctx.requestId, delta: "", done: true });
+      emitSafe(ch.aiChunk, { requestId: opts.ctx.requestId, delta: "", done: true });
       return {
         ok: false,
         content: fullOut + turnText,
         error: (e as Error).message,
         toolCalls: allCalls,
+        stopReason: opts.signal.aborted ? "cancelled" : "error",
+        iterations,
       };
     }
     fullOut += turnText;
 
     const requested = extractToolCalls(turnText);
-    if (requested.length === 0) break;
+    if (requested.length === 0) {
+      completed = true;
+      break;
+    }
 
     // Echo the assistant's tool requests back into the transcript so the
     // model sees the conversation in correct shape next iteration.
@@ -89,8 +109,10 @@ export const runAgent = async (opts: RunAgentOptions): Promise<AiResult> => {
       emitTool(pending);
 
       const tool = findTool(req.name);
-      if (!tool) {
-        const error = `Unknown tool: ${req.name}`;
+      if (!tool || !allowedNames.has(req.name)) {
+        const error = tool
+          ? `Tool is not available to this agent: ${req.name}`
+          : `Unknown tool: ${req.name}`;
         const final: ToolCall = { id, name: req.name, args: req.args, status: "error", error };
         allCalls.push(final);
         emitTool(final);
@@ -122,6 +144,15 @@ export const runAgent = async (opts: RunAgentOptions): Promise<AiResult> => {
     transcript.push({ role: "user", content: resultBlocks.join("\n\n") });
   }
 
-  emit(ch.aiChunk, { requestId: opts.ctx.requestId, delta: "", done: true });
-  return { ok: true, content: fullOut, toolCalls: allCalls };
+  emitSafe(ch.aiChunk, { requestId: opts.ctx.requestId, delta: "", done: true });
+  const stopReason = completed ? "complete" : "maxiterations";
+  return {
+    ok: stopReason === "complete",
+    content: fullOut,
+    toolCalls: allCalls,
+    stopReason,
+    iterations,
+    error:
+      stopReason === "maxiterations" ? `Agent reached the ${maxTurns} iteration limit.` : undefined,
+  };
 };

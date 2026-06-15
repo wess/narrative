@@ -10,6 +10,20 @@ export {
   saveChannel,
 } from "./channel.ts";
 export {
+  createHarnessScenario,
+  listHarnessRuns,
+  listHarnessScenarios,
+  recordHarnessRun,
+} from "./harness.ts";
+export {
+  buildKanbanPrompt,
+  createKanbanCard,
+  deleteKanbanCard,
+  listKanbanBoard,
+  moveKanbanCard,
+  updateKanbanCard,
+} from "./kanban.ts";
+export {
   createAgent,
   createCommand,
   deleteAgent,
@@ -23,11 +37,34 @@ export {
 } from "./load.ts";
 export type { SuggestedChannelResult } from "./project.ts";
 export {
+  analyzeProject,
+  cancelProjectRun,
+  changedProjectFiles,
   createProject,
+  decideProjectWriteProposal,
   deleteProject,
+  diffProjectFile,
+  getProject,
+  listProjectRuns,
   listProjects,
+  listProjectWriteProposals,
+  projectTree,
+  proposeProjectWrite,
+  readProjectFile,
+  setProjectApprovedCommands,
+  setProjectPermissions,
   suggestChannelForProject,
 } from "./project.ts";
 export { extractToolCalls, formatToolPrompt, stripToolBlocks } from "./protocol.ts";
 export type { RunAgentOptions } from "./run.ts";
 export { runAgent } from "./run.ts";
+export { listAgentRuns, recordAgentRun } from "./timeline.ts";
+export { listChannelMessages, recordChannelMessage } from "./transcript.ts";
+export {
+  createWorkflow,
+  deleteWorkflow,
+  listWorkflowRuns,
+  listWorkflows,
+  runWorkflow,
+  updateWorkflow,
+} from "./workflow.ts";

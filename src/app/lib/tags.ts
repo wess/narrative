@@ -4,7 +4,7 @@ import type { TagCount } from "../../shared/types.ts";
 // `narrative` under `project`.
 export type TagNode = {
   readonly name: string; // full path, e.g. "project/narrative"
-  readonly label: string; // last segment, e.g. "narrative"
+  readonly label: string; // last segment, e.g. "bethink"
   count: number; // pages tagged exactly with `name`
   total: number; // pages tagged with `name` or anything beneath it
   readonly children: TagNode[];

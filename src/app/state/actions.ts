@@ -4,14 +4,20 @@ import * as ch from "../../shared/channels.ts";
 import type {
   AiProvider,
   ChatMessage,
+  KanbanPriority,
+  KanbanStatus,
+  ProjectFileNode,
   StohrConnectResult,
   StohrSyncResult,
   ToolCall,
   VaultInfo,
+  WorkflowStep,
+  WorkflowTrigger,
+  WorkflowTriggerKind,
 } from "../../shared/types.ts";
 import { copyText } from "../lib/clipboard.ts";
 import { flattenTree } from "../lib/tree.ts";
-import { getState, setState, type Theme, type View, writePref } from "./store.ts";
+import { getState, readPref, setState, type Theme, type View, writePref } from "./store.ts";
 
 const ancestorsOf = (id: number): number[] => {
   const all = flattenTree(getState().tree);
@@ -98,6 +104,8 @@ export const actions = {
       outgoing: [],
       view: "editor",
       search: { query: "", hits: [] },
+      baseView: null,
+      canvasView: null,
       loading: false,
     });
     await actions.init();
@@ -110,7 +118,15 @@ export const actions = {
       await actions.afterVaultChange(vault);
     } else {
       const vaultRecents = await invoke(ch.vaultRecents, undefined);
-      setState({ vault: null, vaultRecents, tree: [], activeId: null, activePage: null });
+      setState({
+        vault: null,
+        vaultRecents,
+        tree: [],
+        activeId: null,
+        activePage: null,
+        baseView: null,
+        canvasView: null,
+      });
     }
   },
 
@@ -129,6 +145,25 @@ export const actions = {
   forgetVault: async (root: string): Promise<void> => {
     const vaultRecents = await invoke(ch.vaultForget, { root });
     setState({ vaultRecents });
+  },
+
+  backupVault: async (): Promise<void> => {
+    const result = await invoke(ch.vaultBackup, undefined);
+    if (result.path) {
+      toast.success("Vault backup created", { description: `${result.files} file(s)` });
+    }
+  },
+
+  restoreVault: async (): Promise<void> => {
+    const result = await invoke(ch.vaultRestore, undefined);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    if (result.root) {
+      toast.success("Vault restored", { description: `${result.files} file(s)` });
+      await actions.reloadVault();
+    }
   },
 
   openPage: async (id: number, opts?: { history?: boolean }): Promise<void> => {
@@ -328,7 +363,7 @@ export const actions = {
     const mcp = getState().mcpConfig;
     if (!mcp) return;
     const snippet = JSON.stringify(
-      { mcpServers: { narrative: { command: mcp.command, args: mcp.args } } },
+      { mcpServers: { bethink: { command: mcp.command, args: mcp.args } } },
       null,
       2,
     );
@@ -355,6 +390,106 @@ export const actions = {
   },
 
   openSearch: (): void => setState({ view: "search" }),
+
+  openSearchHit: async (hit: { kind: string; id: number; target: string }): Promise<void> => {
+    if (hit.kind === "page") {
+      await actions.openPage(hit.id);
+    } else if (hit.kind === "capture") {
+      const pageId = Number(hit.target);
+      if (Number.isFinite(pageId) && pageId > 0) await actions.openPage(pageId);
+    } else if (hit.kind === "agent") {
+      actions.openAgentProfile(hit.target);
+    } else if (hit.kind === "channel") {
+      await actions.openChannelProfile(hit.target);
+    } else if (hit.kind === "project") {
+      await actions.openProjectInspector(hit.target);
+    } else if (hit.kind === "memory") {
+      await actions.openMemoryManager();
+    } else if (hit.kind === "run") {
+      await actions.openRunTimeline();
+    } else if (hit.kind === "transcript") {
+      await actions.openChannelProfile(hit.target);
+    } else if (hit.kind === "proposal") {
+      await actions.openReviewQueue();
+    }
+  },
+
+  openBases: async (): Promise<void> => {
+    setState({ view: "bases", loading: true });
+    const baseView = await invoke(ch.baseView, undefined);
+    setState({ baseView, loading: false });
+  },
+
+  refreshBases: async (): Promise<void> => {
+    const baseView = await invoke(ch.baseView, undefined);
+    setState({ baseView });
+  },
+
+  openCanvas: async (): Promise<void> => {
+    setState({ view: "canvas", loading: true });
+    const canvasView = await invoke(ch.canvasView, undefined);
+    setState({ canvasView, loading: false });
+  },
+
+  refreshCanvas: async (): Promise<void> => {
+    const canvasView = await invoke(ch.canvasView, undefined);
+    setState({ canvasView });
+  },
+
+  moveCanvasNode: async (id: string, x: number, y: number): Promise<void> => {
+    setState((s) =>
+      s.canvasView
+        ? {
+            canvasView: {
+              ...s.canvasView,
+              nodes: s.canvasView.nodes.map((node) =>
+                node.id === id ? { ...node, x: Math.round(x), y: Math.round(y) } : node,
+              ),
+            },
+          }
+        : {},
+    );
+    const canvasView = await invoke(ch.canvasMove, { id, x, y });
+    setState({ canvasView });
+  },
+
+  addCanvasNode: async (id: string): Promise<void> => {
+    const canvasView = await invoke(ch.canvasAdd, { id });
+    setState({ canvasView });
+  },
+
+  removeCanvasNode: async (id: string): Promise<void> => {
+    const canvasView = await invoke(ch.canvasRemove, { id });
+    setState({ canvasView });
+  },
+
+  openCapture: (): void => setState({ captureOpen: true }),
+  closeCapture: (): void => setState({ captureOpen: false }),
+  openCaptureHistory: async (): Promise<void> => {
+    setState({ captureHistoryOpen: true });
+    await actions.refreshCaptures();
+  },
+  closeCaptureHistory: (): void => setState({ captureHistoryOpen: false }),
+  refreshCaptures: async (): Promise<void> => {
+    const captures = await invoke(ch.webCaptures, { limit: 100 });
+    setState({ captures });
+  },
+
+  captureWeb: async (input: { url: string; title?: string; notes?: string }): Promise<boolean> => {
+    try {
+      const capture = await invoke(ch.webCapture, input);
+      if (!capture) return false;
+      setState({ captureOpen: false });
+      void actions.refreshCaptures();
+      await refreshTree();
+      await actions.openPage(capture.pageId);
+      toast.success("Web page captured", { description: capture.pageTitle });
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Capture failed");
+      return false;
+    }
+  },
 
   openTag: async (tag: string): Promise<void> => {
     const pages = await invoke(ch.tagPages, { tag });
@@ -431,16 +566,22 @@ export const actions = {
   // --- settings ----------------------------------------------------------
 
   loadSettings: async (): Promise<void> => {
-    const [aiConfig, embedStatus, mcpConfig] = await Promise.all([
+    const [aiConfig, embedStatus, mcpConfig, aiHealth] = await Promise.all([
       invoke(ch.getSettings, undefined),
       invoke(ch.embedStatus, undefined),
       invoke(ch.mcpConfig, undefined),
+      invoke(ch.aiHealth, { live: false }),
     ]);
-    setState({ aiConfig, embedStatus, mcpConfig });
+    setState({ aiConfig, embedStatus, mcpConfig, aiHealth });
   },
 
   setSemanticIndex: async (enabled: boolean): Promise<void> => {
     const aiConfig = await invoke(ch.setSemanticIndex, { enabled });
+    setState({ aiConfig });
+  },
+
+  setProjectWrite: async (enabled: boolean): Promise<void> => {
+    const aiConfig = await invoke(ch.setSettings, { projectWrite: enabled });
     setState({ aiConfig });
   },
 
@@ -462,25 +603,39 @@ export const actions = {
     baseURL?: string;
   }): Promise<void> => {
     const aiConfig = await invoke(ch.setSettings, patch);
-    setState({ aiConfig });
+    const aiHealth = await invoke(ch.aiHealth, { live: false });
+    setState({ aiConfig, aiHealth });
   },
 
   setAiKey: async (provider: AiProvider, apiKey: string): Promise<void> => {
     const aiConfig = await invoke(ch.setAiKey, { provider, apiKey });
-    setState({ aiConfig });
+    const aiHealth = await invoke(ch.aiHealth, { live: false });
+    setState({ aiConfig, aiHealth });
     toast.success(apiKey.trim() ? "API key saved" : "API key cleared");
   },
 
   clearAiKey: async (provider: AiProvider): Promise<void> => {
     const aiConfig = await invoke(ch.clearAiKey, { provider });
-    setState({ aiConfig });
+    const aiHealth = await invoke(ch.aiHealth, { live: false });
+    setState({ aiConfig, aiHealth });
     toast.success("API key cleared");
   },
 
   testAi: (): Promise<{ ok: boolean; message: string }> => invoke(ch.testAi, undefined),
 
-  openSettings: (): void => setState({ settingsOpen: true }),
+  checkAiHealth: async (): Promise<{ ok: boolean; message: string }> => {
+    const aiHealth = await invoke(ch.aiHealth, { live: true });
+    setState({ aiHealth });
+    return { ok: aiHealth.chat.ok, message: aiHealth.chat.message };
+  },
+
+  openSettings: (tab = "general"): void => setState({ settingsOpen: true, settingsTab: tab }),
   closeSettings: (): void => setState({ settingsOpen: false }),
+  setSettingsTab: (settingsTab: string): void => setState({ settingsTab }),
+  dismissFirstSetup: (): void => {
+    writePref("firstSetupDone", true);
+    setState({ firstSetupOpen: false });
+  },
 
   // --- Stohr connection --------------------------------------------------
 
@@ -595,6 +750,11 @@ export const actions = {
         projects,
         commands,
         toolDefs,
+        firstSetupOpen:
+          !readPref<boolean>("firstSetupDone", false) &&
+          agents.length === 0 &&
+          channels.length === 0 &&
+          projects.length === 0,
         agentProfileSlug: profileStillThere ? s.agentProfileSlug : null,
         channelProfileSlug: channelProfileStillThere ? s.channelProfileSlug : null,
         chat: { ...s.chat, agentSlug, channelSlug },
@@ -616,18 +776,158 @@ export const actions = {
 
   openAgentWizard: (): void => setState({ agentWizardOpen: true }),
   closeAgentWizard: (): void => setState({ agentWizardOpen: false }),
+  openAgentGuide: (): void => setState({ agentGuideOpen: true }),
+  closeAgentGuide: (): void => setState({ agentGuideOpen: false }),
   openAgentProfile: (slug: string): void => setState({ agentProfileSlug: slug }),
   closeAgentProfile: (): void => setState({ agentProfileSlug: null }),
+  openRunTimeline: async (): Promise<void> => {
+    setState({ runTimelineOpen: true });
+    await actions.refreshRunTimeline();
+  },
+  closeRunTimeline: (): void => setState({ runTimelineOpen: false }),
+  refreshRunTimeline: async (): Promise<void> => {
+    const agentRuns = await invoke(ch.agentRuns, { limit: 100 });
+    setState({ agentRuns });
+  },
+  openMemoryManager: async (): Promise<void> => {
+    setState({ memoryManagerOpen: true });
+    await actions.refreshMemories();
+  },
+  closeMemoryManager: (): void => setState({ memoryManagerOpen: false }),
+  refreshMemories: async (): Promise<void> => {
+    const memories = await invoke(ch.memoryList, { limit: 150 });
+    setState({ memories });
+  },
+  deleteMemory: async (id: number): Promise<void> => {
+    const memories = await invoke(ch.memoryDelete, { id });
+    setState({ memories });
+    toast.success("Memory deleted");
+  },
+  pinMemory: async (id: number, pinned: boolean): Promise<void> => {
+    const memories = await invoke(ch.memoryPin, { id, pinned });
+    setState({ memories });
+  },
   openChannelWizard: (): void => setState({ channelWizardOpen: true }),
   closeChannelWizard: (): void => setState({ channelWizardOpen: false }),
-  openChannelProfile: (slug: string): void => setState({ channelProfileSlug: slug }),
+  openChannelProfile: async (slug: string): Promise<void> => {
+    setState({ channelProfileSlug: slug });
+    await actions.refreshChannelMessages(slug);
+  },
   closeChannelProfile: (): void => setState({ channelProfileSlug: null }),
+  refreshChannelMessages: async (slug?: string): Promise<void> => {
+    const channelSlug = slug ?? getState().channelProfileSlug;
+    if (!channelSlug) return;
+    const channelMessages = await invoke(ch.channelMessages, { slug: channelSlug, limit: 80 });
+    if (getState().channelProfileSlug === channelSlug) setState({ channelMessages });
+  },
 
   addProject: async (): Promise<void> => {
     const project = await invoke(ch.projectPick, undefined);
     if (!project) return;
     await actions.refreshAgents();
     toast.success("Project added");
+  },
+
+  loadProjectTree: (slug: string): Promise<ProjectFileNode | null> =>
+    invoke(ch.projectTree, { slug }),
+
+  openProjectInspector: async (slug: string, path?: string): Promise<void> => {
+    const project = getState().projects.find((item) => item.slug === slug);
+    if (!project) return;
+    const selectedPath = path ?? null;
+    setState({
+      projectInspector: {
+        projectSlug: project.slug,
+        projectName: project.name,
+        path: selectedPath,
+        file: null,
+        diff: null,
+        analysis: null,
+        changed: [],
+        runs: [],
+        loading: true,
+      },
+    });
+    const [changed, runs, analysis, file, diff] = await Promise.all([
+      invoke(ch.projectChanged, { slug }),
+      invoke(ch.projectRuns, { slug }),
+      invoke(ch.projectAnalyze, { slug }),
+      selectedPath ? invoke(ch.projectRead, { slug, path: selectedPath }) : Promise.resolve(null),
+      selectedPath ? invoke(ch.projectDiff, { slug, path: selectedPath }) : Promise.resolve(null),
+    ]);
+    const current = getState().projectInspector;
+    if (!current || current.projectSlug !== slug || current.path !== selectedPath) return;
+    setState({
+      projectInspector: {
+        ...current,
+        file,
+        diff,
+        analysis,
+        changed,
+        runs,
+        loading: false,
+      },
+    });
+  },
+
+  refreshProjectInspector: async (): Promise<void> => {
+    const current = getState().projectInspector;
+    if (!current) return;
+    await actions.openProjectInspector(current.projectSlug, current.path ?? undefined);
+  },
+
+  closeProjectInspector: (): void => setState({ projectInspector: null }),
+
+  cancelProjectRun: async (id: number): Promise<void> => {
+    const current = getState().projectInspector;
+    if (!current) return;
+    const runs = await invoke(ch.projectRunCancel, { id, slug: current.projectSlug });
+    setState((s) =>
+      s.projectInspector
+        ? {
+            projectInspector: {
+              ...s.projectInspector,
+              runs,
+            },
+          }
+        : {},
+    );
+    toast.success("Command stop requested");
+  },
+
+  updateProjectPermissions: async (
+    slug: string,
+    patch: { allowRead?: boolean; allowWrite?: boolean; allowRun?: boolean },
+  ): Promise<void> => {
+    const project = await invoke(ch.projectPermissions, { slug, ...patch });
+    if (!project) return;
+    setState((s) => ({
+      projects: s.projects.map((item) => (item.slug === project.slug ? project : item)),
+    }));
+  },
+
+  openReviewQueue: async (): Promise<void> => {
+    setState({ reviewQueueOpen: true });
+    await actions.refreshReviewQueue();
+  },
+
+  closeReviewQueue: (): void => setState({ reviewQueueOpen: false }),
+
+  refreshReviewQueue: async (): Promise<void> => {
+    const projectProposals = await invoke(ch.projectProposals, undefined);
+    setState({ projectProposals });
+  },
+
+  approveProjectProposal: async (id: number): Promise<void> => {
+    const projectProposals = await invoke(ch.projectProposalApprove, { id });
+    setState({ projectProposals });
+    toast.success("Change approved");
+  },
+
+  rejectProjectProposal: async (id: number): Promise<void> => {
+    const projectProposals = await invoke(ch.projectProposalReject, { id });
+    setState({ projectProposals });
+    toast.success("Change rejected");
   },
 
   deleteProject: async (slug: string): Promise<void> => {
@@ -644,6 +944,144 @@ export const actions = {
     actions.openAi();
     setState({ channelProfileSlug: result.channel.slug });
     toast.success("Channel suggested");
+  },
+
+  openKanban: async (scope?: { projectSlug?: string; channelSlug?: string }): Promise<void> => {
+    setState({ kanbanOpen: true });
+    const kanbanBoard = await invoke(ch.kanbanBoard, scope ?? {});
+    setState({ kanbanBoard });
+  },
+
+  closeKanban: (): void => setState({ kanbanOpen: false }),
+
+  refreshKanban: async (): Promise<void> => {
+    const board = getState().kanbanBoard;
+    if (!board) return;
+    const kanbanBoard = await invoke(ch.kanbanBoard, {
+      projectSlug: board.projectSlug ?? undefined,
+      channelSlug: board.channelSlug ?? undefined,
+    });
+    setState({ kanbanBoard });
+  },
+
+  createKanbanCard: async (input: {
+    title: string;
+    description?: string;
+    status?: KanbanStatus;
+    priority?: KanbanPriority;
+    agentSlug?: string | null;
+  }): Promise<void> => {
+    const board = getState().kanbanBoard;
+    const card = await invoke(ch.kanbanCreate, {
+      ...input,
+      projectSlug: board?.projectSlug ?? null,
+      channelSlug: board?.channelSlug ?? null,
+    });
+    if (!card) return;
+    await actions.refreshKanban();
+    toast.success("Card added");
+  },
+
+  updateKanbanCard: async (
+    id: number,
+    patch: {
+      title?: string;
+      description?: string;
+      status?: KanbanStatus;
+      priority?: KanbanPriority;
+      agentSlug?: string | null;
+    },
+  ): Promise<void> => {
+    const card = await invoke(ch.kanbanUpdate, { id, ...patch });
+    if (!card) return;
+    await actions.refreshKanban();
+  },
+
+  moveKanbanCard: async (id: number, status: KanbanStatus): Promise<void> => {
+    const card = await invoke(ch.kanbanMove, { id, status });
+    if (!card) return;
+    await actions.refreshKanban();
+  },
+
+  deleteKanbanCard: async (id: number): Promise<void> => {
+    const kanbanBoard = await invoke(ch.kanbanDelete, { id });
+    setState({ kanbanBoard });
+    toast.success("Card deleted");
+  },
+
+  runKanbanCard: async (id: number): Promise<void> => {
+    const result = await invoke(ch.kanbanPrompt, { id });
+    if (!result) return;
+    if (result.channelSlug) actions.setChannel(result.channelSlug);
+    else if (result.agentSlug) actions.setAgent(result.agentSlug);
+    actions.openAi();
+    setState({ kanbanOpen: false });
+    await actions.sendChat(result.prompt);
+  },
+
+  openWorkflows: async (): Promise<void> => {
+    setState({ workflowsOpen: true });
+    await actions.refreshWorkflows();
+  },
+
+  closeWorkflows: (): void => setState({ workflowsOpen: false }),
+
+  refreshWorkflows: async (): Promise<void> => {
+    const [workflows, workflowRuns] = await Promise.all([
+      invoke(ch.workflowList, undefined),
+      invoke(ch.workflowRuns, { limit: 80 }),
+    ]);
+    setState({ workflows, workflowRuns });
+  },
+
+  createWorkflow: async (input: {
+    name: string;
+    description?: string;
+    projectSlug?: string | null;
+    channelSlug?: string | null;
+    steps?: WorkflowStep[];
+    triggers?: WorkflowTrigger[];
+  }): Promise<void> => {
+    const workflow = await invoke(ch.workflowCreate, input);
+    if (!workflow) return;
+    await actions.refreshWorkflows();
+    if (getState().view === "canvas") await actions.refreshCanvas();
+    toast.success("Workflow created");
+  },
+
+  updateWorkflow: async (
+    slug: string,
+    patch: {
+      name?: string;
+      description?: string;
+      projectSlug?: string | null;
+      channelSlug?: string | null;
+      steps?: WorkflowStep[];
+      triggers?: WorkflowTrigger[];
+    },
+  ): Promise<void> => {
+    const workflow = await invoke(ch.workflowUpdate, { slug, ...patch });
+    if (!workflow) return;
+    await actions.refreshWorkflows();
+    if (getState().view === "canvas") await actions.refreshCanvas();
+  },
+
+  deleteWorkflow: async (slug: string): Promise<void> => {
+    const workflows = await invoke(ch.workflowDelete, { slug });
+    setState({ workflows });
+    if (getState().view === "canvas") await actions.refreshCanvas();
+    toast.success("Workflow deleted");
+  },
+
+  runWorkflow: async (
+    slug: string,
+    triggerKind: WorkflowTriggerKind = "manual",
+    input = "",
+  ): Promise<void> => {
+    const run = await invoke(ch.workflowRun, { slug, triggerKind, input });
+    if (!run) return;
+    await actions.refreshWorkflows();
+    toast.success(run.status === "waiting" ? "Workflow waiting" : "Workflow run recorded");
   },
 
   createAgentFile: async (name: string): Promise<void> => {
@@ -689,6 +1127,25 @@ export const actions = {
     }
     setState({ channelWizardOpen: false });
     toast.success("Channel created");
+  },
+
+  exportAgent: async (slug: string): Promise<void> => {
+    const result = await invoke(ch.agentExport, { slug });
+    if (result.path) toast.success("Agent exported", { description: result.path });
+  },
+
+  exportChannel: async (slug: string): Promise<void> => {
+    const result = await invoke(ch.channelExport, { slug });
+    if (result.path) toast.success("Channel exported", { description: result.path });
+  },
+
+  importAgents: async (): Promise<void> => {
+    const result = await invoke(ch.agentImport, undefined);
+    if (result.importedAgents === 0 && result.importedChannels === 0) return;
+    await actions.refreshAgents();
+    toast.success("Import complete", {
+      description: `${result.importedAgents} agent(s), ${result.importedChannels} channel(s)`,
+    });
   },
 
   createCommandFile: async (name: string): Promise<void> => {

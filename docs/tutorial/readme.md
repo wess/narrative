@@ -1,4 +1,4 @@
-# Narrative Tutorials
+# Bethink Tutorials
 
 A hands-on path from a fresh install to writing your own plugin. Each tutorial
 is short, practical, and builds on the one before — work through them in order
@@ -7,7 +7,7 @@ the first time.
 ## The path
 
 1. **[Getting started](gettingstarted.md)**
-   Install Narrative, open it for the first time, and understand what a vault
+   Install Bethink, open it for the first time, and understand what a vault
    is.
 
 2. **[Writing your first notes](writing.md)**
@@ -25,11 +25,11 @@ the first time.
    Connect an AI provider and chat with a model grounded in your own notes.
 
 6. **[Writing your first plugin](plugin.md)**
-   Build a working plugin and load it into Narrative.
+   Build a working plugin and load it into Bethink.
 
 ## Before you start
 
-Narrative runs on **[Bun](https://bun.sh)**. Install it, then from the project
+Bethink runs on **[Bun](https://bun.sh)**. Install it, then from the project
 folder:
 
 ```bash
@@ -42,3 +42,7 @@ A native window opens. That's your cue to begin with
 
 For reference material beyond these tutorials, see the
 **[documentation guides](../readme.md)**.
+
+When you finish the tutorials, continue with **[Bethink Learning](../learning/index.md)**.
+It turns the features into deeper courses, practice routines, AI/agent
+workflows, and power-user checklists.

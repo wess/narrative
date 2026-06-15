@@ -1,4 +1,4 @@
-// The Narrative-local UI sidecar: `.narrative/ui.json` inside the vault. It
+// The Bethink-local UI sidecar: `.narrative/ui.json` inside the vault. It
 // holds the bits a plain Markdown file has no place for — pins, archive
 // state, page icons, manual sort order — keyed by vault-relative path. It
 // lives in the vault so it travels with it, but it's a dotfolder so other

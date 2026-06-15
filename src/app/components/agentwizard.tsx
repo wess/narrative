@@ -115,7 +115,7 @@ const sourceFromDraft = (draft: Draft): string => {
   const body =
     draft.freeform.trim() ||
     [
-      `You are ${draft.name.trim() || "an agent"}, an assistant working inside the user's Narrative vault.`,
+      `You are ${draft.name.trim() || "an agent"}, an assistant working inside the user's Bethink vault.`,
       "",
       `Purpose: ${draft.purpose.trim() || draft.description.trim() || "Help with the user's notes."}`,
       `Response style: ${draft.style.trim() || "Clear, concise, and grounded."}`,

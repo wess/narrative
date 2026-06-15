@@ -1,8 +1,28 @@
 # Changelog
 
-All notable changes to Narrative are documented here. The format follows
+All notable changes to Bethink are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project aims
 to adhere to [Semantic Versioning](https://semver.org/).
+
+## [1.0.0] - 2026-06-15
+
+### Added
+
+- Agent workspace with named agents, channels, project folders, durable memory,
+  project write proposals, command run history, and MCP tools for external AI
+  clients.
+- Agent harness primitives: saved scenarios, loop budgets, run results, scores,
+  stop reasons, and iteration counts.
+- Project command approvals so agent command execution is limited to explicit
+  safe commands.
+
+### Changed
+
+- Empty agent tool allowlists now grant no tools. Use `*` explicitly to grant
+  the full tool registry.
+- MCP project tree/read/diff tools now respect per-project read permissions.
+- Agent loop runs now report `maxiterations` instead of silently succeeding when
+  they hit the iteration cap.
 
 ## [0.1.3] - 2026-06-04
 
@@ -12,7 +32,7 @@ to adhere to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- App version in the window title bar (e.g. "Narrative v0.1.3").
+- App version in the window title bar (e.g. "Bethink v0.1.3").
 
 ## [0.1.2] - 2026-06-04
 
@@ -70,5 +90,5 @@ to adhere to [Semantic Versioning](https://semver.org/).
 - A standalone Model Context Protocol server exposing the vault to AI clients.
 - An Obsidian-compatible plugin system.
 
-[Unreleased]: https://github.com/wess/narrative/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/wess/narrative/releases/tag/v0.1.0
+[Unreleased]: https://github.com/wess/bethink/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/wess/bethink/releases/tag/v0.1.0

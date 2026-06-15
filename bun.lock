@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "narrative",
+      "name": "bethink",
       "dependencies": {
         "@basket/ai": "workspace:*",
         "@basket/config": "workspace:*",

@@ -1,6 +1,6 @@
 <div align="center">
 
-# Narrative
+# Bethink
 
 **A fast, native knowledge base where every note is a Markdown file you own.**
 
@@ -11,16 +11,17 @@ blink and never holds your knowledge hostage.
 [Quick start](#quick-start) ·
 [Documentation](docs/readme.md) ·
 [Tutorials](docs/tutorial/readme.md) ·
+[Learning](docs/learning/index.md) ·
 [Plugins](docs/plugins.md)
 
 </div>
 
 ---
 
-## Why Narrative
+## Why Bethink
 
 - **Your vault is a folder of files.** Every page is a real `.md` file, every
-  subfolder a folder. Point Narrative at any folder of Markdown and it just
+  subfolder a folder. Point Bethink at any folder of Markdown and it just
   works. There is no proprietary database, no lock-in — back it up with git,
   sync it with anything, open it in any editor.
 - **Native and fast.** No bundled browser. A small binary, an instant cold
@@ -74,7 +75,7 @@ any **OpenAI-compatible** server. API keys live in the **OS Keychain**.
 
 ### ☁️ Cloud sync (optional)
 
-Keep working entirely local, or connect Narrative to a self-hostable
+Keep working entirely local, or connect Bethink to a self-hostable
 **[Stohr](https://github.com/wess/stohr)** instance and your whole vault —
 every page and attachment — stays in **two-way sync** with your account:
 pushed and pulled on launch, on a timer, and on demand, with conflicting edits
@@ -90,26 +91,26 @@ and Markdown processors.
 
 ## Quick start
 
-Narrative runs on **[Bun](https://bun.sh)** — install it first, then:
+Bethink runs on **[Bun](https://bun.sh)** — install it first, then:
 
 ```bash
 bun install
 bun run dev
 ```
 
-A native window opens with hot reload. On first run Narrative seeds a starter
+A native window opens with hot reload. On first run Bethink seeds a starter
 vault so you're never staring at a blank screen — press **⌘N** for a new page
 and **⌘K** to open the command palette.
 
 ## Build
 
 ```bash
-bun run build      # -> dist/narrative   single-file binary
+bun run build      # -> dist/bethink   single-file binary
 bun run bundle     # -> a native app bundle (.app / .AppDir / .exe folder)
 bun run package    # -> a distributable installer (.dmg / .AppImage / setup.exe)
 ```
 
-Narrative builds on **macOS, Linux, and Windows** — it uses each OS's own
+Bethink builds on **macOS, Linux, and Windows** — it uses each OS's own
 webview, so there's no bundled browser anywhere. See
 **[docs/building.md](docs/building.md)** for the full cross-platform build and
 distribution guide.
@@ -118,7 +119,8 @@ distribution guide.
 
 | Guide | What's inside |
 |---|---|
-| [Overview](docs/overview.md) | What Narrative is and how it's built |
+| [Learning](docs/learning/index.md) | Courses, lessons, exercises, and power-user workflows |
+| [Overview](docs/overview.md) | What Bethink is and how it's built |
 | [Vaults](docs/vault.md) | The file-backed vault model and how sync works |
 | [The editor](docs/editor.md) | Blocks, the slash menu, every block type |
 | [Linking & the graph](docs/linking.md) | Wiki links, backlinks, hover previews |
@@ -131,7 +133,9 @@ distribution guide.
 | [Building & distribution](docs/building.md) | Dev, compile, bundle, ship |
 
 **New here?** Start with the **[tutorials](docs/tutorial/readme.md)** — a
-hands-on path from installing Narrative to writing your first plugin.
+hands-on path from installing Bethink to writing your first plugin. To go
+deeper, work through **[Bethink Learning](docs/learning/index.md)**, a
+course-style path for becoming a power user.
 
 ## Project layout
 
@@ -149,7 +153,7 @@ src/
     plugins/   the plugin runtime — Obsidian API, loader, vault adapter
 ```
 
-Narrative is built on two of its own libraries, vendored into the repo:
+Bethink is built on two of its own libraries, vendored into the repo:
 **[butter](butter/)** (the Bun-host + native-webview desktop framework) and
 **[basket](basket/)** (the `@basket/*` standard-library packages).
 

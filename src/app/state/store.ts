@@ -1,28 +1,44 @@
 import { useSyncExternalStore } from "react";
 import type {
   AgentDef,
+  AgentRun,
   AgentToolDef,
   AiConfig,
+  AiHealth,
   AppStats,
   Backlink,
   Backlinks,
+  BaseView,
+  CanvasView,
   ChannelDef,
+  ChannelMessage,
   ChatMessage,
   CommandDef,
   EmbedStatus,
   GraphData,
+  KanbanBoard,
+  MemoryRecord,
   Page,
   PageMeta,
+  ProjectAnalysis,
+  ProjectChangedFile,
   ProjectDef,
+  ProjectDiff,
+  ProjectFileContent,
+  ProjectRun,
+  ProjectWriteProposal,
   SearchHit,
   StohrStatus,
   TagCount,
   TreeNode,
   VaultEntry,
   VaultInfo,
+  WebCapture,
+  Workflow,
+  WorkflowRun,
 } from "../../shared/types.ts";
 
-export type View = "editor" | "graph" | "search" | "tags";
+export type View = "editor" | "graph" | "search" | "tags" | "bases" | "canvas";
 export type Theme = "light" | "dark" | "auto";
 export type GraphMode = "global" | "local";
 
@@ -45,6 +61,18 @@ export type AgentEditorState = {
   readonly path: string;
   readonly body: string;
   readonly dirty: boolean;
+};
+
+export type ProjectInspectorState = {
+  readonly projectSlug: string;
+  readonly projectName: string;
+  readonly path: string | null;
+  readonly file: ProjectFileContent | null;
+  readonly diff: ProjectDiff | null;
+  readonly analysis: ProjectAnalysis | null;
+  readonly changed: readonly ProjectChangedFile[];
+  readonly runs: readonly ProjectRun[];
+  readonly loading: boolean;
 };
 
 export type AppState = {
@@ -77,34 +105,56 @@ export type AppState = {
   readonly tagFilter: { readonly tag: string | null; readonly pages: readonly PageMeta[] };
   readonly graph: GraphData | null;
   readonly graphMode: GraphMode;
+  readonly baseView: BaseView | null;
+  readonly canvasView: CanvasView | null;
   readonly theme: Theme;
   readonly paletteOpen: boolean;
   readonly sidebarCollapsed: boolean;
   readonly panelOpen: boolean;
   readonly loading: boolean;
   readonly settingsOpen: boolean;
+  readonly settingsTab: string;
+  readonly firstSetupOpen: boolean;
   readonly aiOpen: boolean;
   readonly aiConfig: AiConfig | null;
+  readonly aiHealth: AiHealth | null;
   readonly embedStatus: EmbedStatus | null;
   readonly mcpConfig: { command: string; args: readonly string[] } | null;
   readonly stohr: StohrStatus | null;
   readonly chat: ChatState;
   readonly agents: readonly AgentDef[];
   readonly channels: readonly ChannelDef[];
+  readonly channelMessages: readonly ChannelMessage[];
   readonly projects: readonly ProjectDef[];
   readonly commands: readonly CommandDef[];
   readonly toolDefs: readonly AgentToolDef[];
   readonly agentEditor: AgentEditorState | null;
   readonly agentWizardOpen: boolean;
+  readonly agentGuideOpen: boolean;
   readonly agentProfileSlug: string | null;
+  readonly agentRuns: readonly AgentRun[];
+  readonly runTimelineOpen: boolean;
+  readonly memories: readonly MemoryRecord[];
+  readonly memoryManagerOpen: boolean;
   readonly channelWizardOpen: boolean;
   readonly channelProfileSlug: string | null;
+  readonly projectInspector: ProjectInspectorState | null;
+  readonly projectProposals: readonly ProjectWriteProposal[];
+  readonly kanbanOpen: boolean;
+  readonly kanbanBoard: KanbanBoard | null;
+  readonly workflowsOpen: boolean;
+  readonly workflows: readonly Workflow[];
+  readonly workflowRuns: readonly WorkflowRun[];
+  readonly reviewQueueOpen: boolean;
+  readonly captureOpen: boolean;
+  readonly captureHistoryOpen: boolean;
+  readonly captures: readonly WebCapture[];
   readonly commandPaletteOpen: boolean;
 };
 
 // --- persisted UI preferences (webview-local, no IPC needed) ---------------
 
-const readPref = <T>(key: string, fallback: T): T => {
+export const readPref = <T>(key: string, fallback: T): T => {
   try {
     const raw = localStorage.getItem(`narrative.${key}`);
     return raw === null ? fallback : (JSON.parse(raw) as T);
@@ -148,14 +198,19 @@ const initial: AppState = {
   tagFilter: { tag: null, pages: [] },
   graph: null,
   graphMode: "global",
+  baseView: null,
+  canvasView: null,
   theme: readPref<Theme>("theme", "auto"),
   paletteOpen: false,
   sidebarCollapsed: readPref<boolean>("sidebarCollapsed", false),
   panelOpen: readPref<boolean>("panelOpen", true),
   loading: false,
   settingsOpen: false,
+  settingsTab: "general",
+  firstSetupOpen: false,
   aiOpen: readPref<boolean>("aiOpen", false),
   aiConfig: null,
+  aiHealth: null,
   embedStatus: null,
   mcpConfig: null,
   stohr: null,
@@ -170,14 +225,31 @@ const initial: AppState = {
   },
   agents: [],
   channels: [],
+  channelMessages: [],
   projects: [],
   commands: [],
   toolDefs: [],
   agentEditor: null,
   agentWizardOpen: false,
+  agentGuideOpen: false,
   agentProfileSlug: null,
+  agentRuns: [],
+  runTimelineOpen: false,
+  memories: [],
+  memoryManagerOpen: false,
   channelWizardOpen: false,
   channelProfileSlug: null,
+  projectInspector: null,
+  projectProposals: [],
+  kanbanOpen: false,
+  kanbanBoard: null,
+  workflowsOpen: false,
+  workflows: [],
+  workflowRuns: [],
+  reviewQueueOpen: false,
+  captureOpen: false,
+  captureHistoryOpen: false,
+  captures: [],
   commandPaletteOpen: false,
 };
 

@@ -11,6 +11,7 @@ export type ToolContext = {
   readonly provider: Provider | null; // null when the user hasn't configured a key
   readonly requestId: string;
   readonly emitFocus: (pageId: number) => void;
+  readonly projectWrite: boolean;
 };
 
 export type Tool = {

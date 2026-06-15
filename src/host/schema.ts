@@ -12,12 +12,12 @@ export const nodesTable = defineTable("nodes", {
   title: column.text(), // file basename without `.md`, or folder name
   body: column.text().default(""), // file content cache; "" for folders
   parentId: column.integer().nullable(), // the containing folder's node id
-  icon: column.text().default(""), // Narrative-local, from the sidecar
-  pinned: column.boolean().default(false), // Narrative-local, from the sidecar
-  archived: column.boolean().default(false), // Narrative-local, from the sidecar
+  icon: column.text().default(""), // Bethink-local, from the sidecar
+  pinned: column.boolean().default(false), // Bethink-local, from the sidecar
+  archived: column.boolean().default(false), // Bethink-local, from the sidecar
   isDaily: column.boolean().default(false), // derived: lives in the daily folder
-  isTemplate: column.boolean().default(false), // Narrative-local, from the sidecar
-  sortKey: column.real().default(0), // Narrative-local manual order, from the sidecar
+  isTemplate: column.boolean().default(false), // Bethink-local, from the sidecar
+  sortKey: column.real().default(0), // Bethink-local manual order, from the sidecar
   mtime: column.real().default(0), // file mtime — drives change detection
   createdAt: column.timestamp().default("now()"),
   updatedAt: column.timestamp().default("now()"),

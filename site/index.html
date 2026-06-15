@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Narrative — a fast, native knowledge base of Markdown files you own</title>
+    <title>Bethink — a fast, native knowledge base of Markdown files you own</title>
     <meta
       name="description"
-      content="Narrative is a native desktop knowledge base where every note is a plain Markdown file you own. Write in blocks, connect ideas with [[links]], search in milliseconds, and ask an AI grounded in your own notes."
+      content="Bethink is a native desktop knowledge base where every note is a plain Markdown file you own. Write in blocks, connect ideas with [[links]], search in milliseconds, and ask an AI grounded in your own notes."
     />
     <link rel="stylesheet" href="styles.css" />
     <style>:root{--accent:#a78bfa;--accent2:#7c5cff}</style>
@@ -15,14 +15,14 @@
     <!-- nav -->
     <nav class="nav">
       <div class="wrap">
-        <a class="brand" href="index.html"><span class="mark">❧</span> Narrative</a>
+        <a class="brand" href="index.html"><span class="mark">❧</span> Bethink</a>
         <button class="navtoggle" aria-label="Menu" data-nav>☰</button>
         <div class="navlinks" data-navlinks>
           <a href="#features">Features</a>
           <a href="#how">How it works</a>
           <a href="#start">Quick start</a>
           <a href="docs.html">Docs</a>
-          <a class="btn primary" href="https://github.com/wess/narrative">GitHub</a>
+          <a class="btn primary" href="https://github.com/wess/bethink">GitHub</a>
         </div>
       </div>
     </nav>
@@ -38,7 +38,7 @@
         </p>
         <div class="cta">
           <a class="btn primary" href="#start">Get started</a>
-          <a class="btn ghost" href="https://github.com/wess/narrative">View on GitHub →</a>
+          <a class="btn ghost" href="https://github.com/wess/bethink">View on GitHub →</a>
         </div>
 
         <!-- editor mockup -->
@@ -130,7 +130,7 @@
           <div class="card">
             <div class="ico">⚡</div>
             <h3>Native and fast</h3>
-            <p>No bundled browser — Narrative uses each OS's own webview. A small binary, an instant cold start, and a window that feels like part of your OS.</p>
+            <p>No bundled browser — Bethink uses each OS's own webview. A small binary, an instant cold start, and a window that feels like part of your OS.</p>
           </div>
         </div>
       </div>
@@ -176,7 +176,7 @@
             <li><span class="ck">✦</span><span><b>Bun host process</b> — the vault repo, file I/O, index sync, search, RAG, and AI providers.</span></li>
             <li><span class="ck">✦</span><span><b>React webview</b> — the editor, sidebar, graph, search, and settings, using each OS's native webview.</span></li>
             <li><span class="ck">✦</span><span><b>Derived index</b> — an in-memory SQLite index rebuilt from your files; the filesystem is always the source of truth.</span></li>
-            <li><span class="ck">✦</span><span><b>Built on butter + basket</b> — Narrative's own desktop framework and <code>@basket/*</code> standard library, vendored in.</span></li>
+            <li><span class="ck">✦</span><span><b>Built on butter + basket</b> — Bethink's own desktop framework and <code>@basket/*</code> standard library, vendored in.</span></li>
             <li><span class="ck">✦</span><span><b>Cross-platform</b> — builds a single-file binary and native bundles for macOS, Linux, and Windows.</span></li>
           </ul>
           <div class="diagram">        React webview (editor · graph)
@@ -197,28 +197,28 @@
       <div class="wrap">
         <div class="eyebrow">Quick start</div>
         <h2>Running in a few minutes.</h2>
-        <p class="sub">Narrative runs on <a href="https://bun.sh">Bun</a> — install it first, then clone the repo and go.</p>
+        <p class="sub">Bethink runs on <a href="https://bun.sh">Bun</a> — install it first, then clone the repo and go.</p>
         <div class="code" style="margin-top: 32px; max-width: 720px">
           <div class="top">
             <span>terminal</span>
             <button class="copy" data-copy>Copy</button>
           </div>
           <pre data-code><span class="c"># clone the repo</span>
-git clone https://github.com/wess/narrative
-cd narrative
+git clone https://github.com/wess/bethink
+cd bethink
 
 <span class="c"># install deps and open the native window with hot reload</span>
 bun install
 bun run dev
 
-<span class="c"># build a single-file binary -> dist/narrative</span>
+<span class="c"># build a single-file binary -> dist/bethink</span>
 bun run build
 
 <span class="c"># run the standalone MCP server</span>
 bun src/mcp.ts</pre>
         </div>
         <p class="sub" style="margin-top: 24px">
-          On first run Narrative seeds a starter vault — press <code>⌘N</code> for a new page and <code>⌘K</code> to open
+          On first run Bethink seeds a starter vault — press <code>⌘N</code> for a new page and <code>⌘K</code> to open
           the command palette. See <a href="docs.html">the docs</a> for the full build and distribution guide.
         </p>
       </div>
@@ -231,19 +231,19 @@ bun src/mcp.ts</pre>
         <p>Open source under Apache 2.0. A native knowledge base that keeps every note as a Markdown file you control.</p>
         <div class="cta">
           <a class="btn primary" href="docs.html">Read the docs</a>
-          <a class="btn ghost" href="https://github.com/wess/narrative">Star it on GitHub →</a>
+          <a class="btn ghost" href="https://github.com/wess/bethink">Star it on GitHub →</a>
         </div>
       </div>
     </section>
 
     <footer>
       <div class="wrap">
-        <a class="brand" href="index.html"><span class="mark">❧</span> Narrative</a>
+        <a class="brand" href="index.html"><span class="mark">❧</span> Bethink</a>
         <div class="links">
           <a href="docs.html">Docs</a>
           <a href="../docs/readme.md">Documentation</a>
           <a href="../docs/tutorial/readme.md">Tutorials</a>
-          <a href="https://github.com/wess/narrative">GitHub</a>
+          <a href="https://github.com/wess/bethink">GitHub</a>
           <a href="https://github.com/wess/stohr">Stohr</a>
         </div>
         <span>Apache 2.0 · © 2026 Wess Cope</span>

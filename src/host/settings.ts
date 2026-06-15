@@ -12,6 +12,7 @@ export type SettingsRepo = {
     model?: string;
     baseURL?: string;
     semanticIndex?: boolean;
+    projectWrite?: boolean;
   }) => Promise<AiConfig>;
   setKey: (provider: AiProvider, apiKey: string) => Promise<void>;
   clearKey: (provider: AiProvider) => Promise<void>;
@@ -39,7 +40,8 @@ export const createSettings = (store: Store, appId: string): SettingsRepo => {
     const baseURL = store.get<string>(`ai.baseURL.${provider}`) ?? preset.defaultBaseURL;
     const hasKey = preset.usesKey ? Boolean(await getKey(provider)) : true;
     const semanticIndex = store.get<boolean>("ai.semanticIndex") ?? false;
-    return { provider, model, baseURL, hasKey, semanticIndex };
+    const projectWrite = store.get<boolean>("ai.projectWrite") ?? false;
+    return { provider, model, baseURL, hasKey, semanticIndex, projectWrite };
   };
 
   const update: SettingsRepo["update"] = async (patch) => {
@@ -52,6 +54,7 @@ export const createSettings = (store: Store, appId: string): SettingsRepo => {
       store.set(`ai.baseURL.${provider}`, trimmed || PROVIDERS[provider].defaultBaseURL);
     }
     if (patch.semanticIndex !== undefined) store.set("ai.semanticIndex", patch.semanticIndex);
+    if (patch.projectWrite !== undefined) store.set("ai.projectWrite", patch.projectWrite);
     return read();
   };
 

@@ -6,6 +6,7 @@ import {
   Info,
   Puzzle,
   RefreshCw,
+  Search,
   SlidersHorizontal,
   Trash2,
   X,
@@ -14,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { PROVIDER_IDS, PROVIDERS } from "../../shared/providers.ts";
 import type {
   AiConfig,
+  AiHealth,
   AiProvider,
   AppStats,
   EmbedStatus,
@@ -59,15 +61,32 @@ const GeneralTab = ({ theme }: { theme: Theme }) => (
       </div>
     </div>
     <p className="settings-hint">System follows your macOS appearance setting automatically.</p>
+    <div className="settings-field">
+      <span className="settings-label">Vault backup</span>
+      <div className="settings-field-row">
+        <button type="button" className="settings-btn" onClick={() => void actions.backupVault()}>
+          Back up vault
+        </button>
+        <button type="button" className="settings-btn" onClick={() => void actions.restoreVault()}>
+          Restore backup
+        </button>
+      </div>
+      <p className="settings-hint">
+        Backups include pages, attachments, agents, channels, memory, project records, and the local
+        SQLite store.
+      </p>
+    </div>
   </div>
 );
 
 const AiTab = ({
   config,
+  health,
   embedStatus,
   mcpConfig,
 }: {
   config: AiConfig | null;
+  health: AiHealth | null;
   embedStatus: EmbedStatus | null;
   mcpConfig: { command: string; args: readonly string[] } | null;
 }) => {
@@ -91,7 +110,7 @@ const AiTab = ({
   const runTest = async () => {
     setTesting(true);
     setTest(null);
-    const result = await actions.testAi();
+    const result = await actions.checkAiHealth();
     setTest(result);
     setTesting(false);
   };
@@ -181,12 +200,51 @@ const AiTab = ({
 
       <div className="settings-field settings-field-row">
         <button type="button" className="settings-btn" disabled={testing} onClick={runTest}>
-          {testing ? "Testing…" : "Test connection"}
+          {testing ? "Checking…" : "Check provider"}
         </button>
         {test ? (
           <span className={test.ok ? "settings-test ok" : "settings-test err"}>{test.message}</span>
         ) : null}
       </div>
+
+      {health ? (
+        <div className="settings-health">
+          <div data-ok={health.configured}>
+            <span>Setup</span>
+            <strong>{health.configured ? "Ready" : "Needs attention"}</strong>
+          </div>
+          <div data-ok={!health.keyRequired || health.keyPresent}>
+            <span>API key</span>
+            <strong>
+              {health.keyRequired ? (health.keyPresent ? "Saved" : "Missing") : "Not required"}
+            </strong>
+          </div>
+          <div data-ok={Boolean(health.baseURL)}>
+            <span>Server</span>
+            <strong>{health.baseURL || "Missing"}</strong>
+          </div>
+          <div data-ok={Boolean(health.model)}>
+            <span>Model</span>
+            <strong>{health.model || "Missing"}</strong>
+          </div>
+          <div data-ok={health.chat.checked ? health.chat.ok : health.configured}>
+            <span>Chat</span>
+            <strong>
+              {health.chat.checked
+                ? health.chat.ok
+                  ? `OK${health.chat.latencyMs === null ? "" : ` · ${health.chat.latencyMs}ms`}`
+                  : "Failed"
+                : "Not checked"}
+            </strong>
+          </div>
+          <div data-ok={health.embeddings.supported}>
+            <span>Embeddings</span>
+            <strong>
+              {health.embeddings.supported ? health.embeddings.model || "Supported" : "No"}
+            </strong>
+          </div>
+        </div>
+      ) : null}
 
       <div className="settings-field">
         <span className="settings-label">Semantic index (RAG)</span>
@@ -217,6 +275,22 @@ const AiTab = ({
         </div>
       </div>
 
+      <div className="settings-field">
+        <span className="settings-label">Project folder access</span>
+        <label className="settings-check">
+          <input
+            type="checkbox"
+            checked={config.projectWrite}
+            onChange={(e) => void actions.setProjectWrite(e.target.checked)}
+          />
+          <span>Allow agents to edit files inside registered project folders</span>
+        </label>
+        <p className="settings-hint">
+          Agents can always inspect registered project trees. File writes stay blocked until this is
+          enabled.
+        </p>
+      </div>
+
       <p className="settings-hint">
         {preset.usesKey
           ? "Your API key is stored in the macOS Keychain, never in a plain file."
@@ -235,7 +309,7 @@ const AiTab = ({
             {JSON.stringify(
               {
                 mcpServers: {
-                  narrative: { command: mcpConfig.command, args: mcpConfig.args },
+                  bethink: { command: mcpConfig.command, args: mcpConfig.args },
                 },
               },
               null,
@@ -253,7 +327,7 @@ const AiTab = ({
 
 type StohrAuthMethod = "token" | "password";
 
-// Connect Narrative to a Stohr instance — self-hostable cloud storage.
+// Connect Bethink to a Stohr instance — self-hostable cloud storage.
 const StohrTab = ({ status }: { status: StohrStatus | null }) => {
   const [baseURL, setBaseURL] = useState("https://stohr.io/api");
   const [method, setMethod] = useState<StohrAuthMethod>("password");
@@ -359,7 +433,7 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
         </div>
 
         <p className="settings-hint">
-          Narrative keeps this vault's Markdown and attachments in two-way sync with your Stohr
+          Bethink keeps this vault's Markdown and attachments in two-way sync with your Stohr
           account — on launch, right after you connect, every couple of minutes, and whenever you
           press Sync now.
         </p>
@@ -523,7 +597,7 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
 const AboutTab = ({ stats }: { stats: AppStats | null }) => (
   <div className="settings-section settings-about">
     <div className="about-mark">◆</div>
-    <h2>Narrative</h2>
+    <h2>Bethink</h2>
     <p className="about-tag">A personal knowledge base</p>
     <p className="about-meta">Your notes, in plain Markdown — portable and yours</p>
     {stats ? (
@@ -553,6 +627,22 @@ const AboutTab = ({ stats }: { stats: AppStats | null }) => (
 const PluginsTab = () => {
   const { installed, status } = usePlugins();
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const term = query.trim().toLowerCase();
+  const visible = term
+    ? installed.filter((plugin) =>
+        [
+          plugin.manifest.name,
+          plugin.manifest.description,
+          plugin.manifest.author,
+          plugin.manifest.id,
+        ]
+          .filter(Boolean)
+          .some((value) => value?.toLowerCase().includes(term)),
+      )
+    : installed;
+  const enabled = installed.filter((plugin) => plugin.enabled).length;
+  const failed = installed.filter((plugin) => status[plugin.manifest.id]?.ok === false).length;
 
   const toggle = async (plugin: InstalledPlugin) => {
     const next = !plugin.enabled;
@@ -582,9 +672,24 @@ const PluginsTab = () => {
   return (
     <div className="settings-section">
       <p className="settings-hint">
-        Narrative loads community plugins from its plugins folder. Plugins run with full access to
+        Bethink loads community plugins from its plugins folder. Plugins run with full access to
         your vault and the network — only enable ones you trust.
       </p>
+
+      <div className="plugin-market-head">
+        <div>
+          <strong>{installed.length}</strong>
+          <span>Installed</span>
+        </div>
+        <div>
+          <strong>{enabled}</strong>
+          <span>Enabled</span>
+        </div>
+        <div data-warn={failed > 0}>
+          <strong>{failed}</strong>
+          <span>Failed</span>
+        </div>
+      </div>
 
       <div className="settings-field settings-field-row">
         <button type="button" className="settings-btn" disabled={busy} onClick={install}>
@@ -602,14 +707,25 @@ const PluginsTab = () => {
         </button>
       </div>
 
+      <div className="plugin-search">
+        <Search size={14} />
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search installed plugins"
+        />
+      </div>
+
       {installed.length === 0 ? (
         <p className="settings-hint">
           No plugins installed yet. Drop a plugin folder (one with a <code>manifest.json</code> and{" "}
           <code>main.js</code>) into the plugins folder, then Rescan.
         </p>
+      ) : visible.length === 0 ? (
+        <p className="settings-hint">No plugins match this search.</p>
       ) : (
         <div className="plugin-list">
-          {installed.map((plugin) => {
+          {visible.map((plugin) => {
             const state = status[plugin.manifest.id];
             return (
               <div className="plugin-row" key={plugin.manifest.id} data-enabled={plugin.enabled}>
@@ -617,10 +733,15 @@ const PluginsTab = () => {
                   <div className="plugin-row-title">
                     <strong>{plugin.manifest.name}</strong>
                     <span className="plugin-row-version">v{plugin.manifest.version}</span>
+                    <span className="plugin-row-version">
+                      {plugin.hasStyles ? "CSS" : "No CSS"}
+                    </span>
                     {state && !state.ok ? (
                       <span className="plugin-row-error" title={state.error}>
                         failed to load
                       </span>
+                    ) : plugin.enabled ? (
+                      <span className="plugin-row-ok">loaded</span>
                     ) : null}
                   </div>
                   {plugin.manifest.description ? (
@@ -629,6 +750,7 @@ const PluginsTab = () => {
                   {plugin.manifest.author ? (
                     <p className="plugin-row-author">by {plugin.manifest.author}</p>
                   ) : null}
+                  <p className="plugin-row-author">{plugin.dir}</p>
                   {state && !state.ok && state.error ? (
                     <p className="plugin-row-error-detail">{state.error}</p>
                   ) : null}
@@ -690,9 +812,19 @@ const PluginSettingsHost = ({ entryId }: { entryId: string }) => {
 };
 
 export const Settings = () => {
-  const { settingsOpen, theme, aiConfig, stats, embedStatus, mcpConfig, stohr } = useApp();
+  const {
+    settingsOpen,
+    settingsTab,
+    theme,
+    aiConfig,
+    aiHealth,
+    stats,
+    embedStatus,
+    mcpConfig,
+    stohr,
+  } = useApp();
   const registry = useRegistry();
-  const [tab, setTab] = useState<string>("general");
+  const tab = settingsTab;
 
   useEffect(() => {
     if (!settingsOpen) return;
@@ -721,7 +853,7 @@ export const Settings = () => {
               key={t.id}
               className="settings-tab"
               data-on={tab === t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => actions.setSettingsTab(t.id)}
             >
               <t.icon size={16} />
               <span>{t.label}</span>
@@ -734,7 +866,7 @@ export const Settings = () => {
               key={entry.id}
               className="settings-tab"
               data-on={tab === `pst:${entry.id}`}
-              onClick={() => setTab(`pst:${entry.id}`)}
+              onClick={() => actions.setSettingsTab(`pst:${entry.id}`)}
             >
               <Puzzle size={16} />
               <span>{entry.name}</span>
@@ -753,7 +885,12 @@ export const Settings = () => {
         <div className="settings-body">
           {tab === "general" ? <GeneralTab theme={theme} /> : null}
           {tab === "ai" ? (
-            <AiTab config={aiConfig} embedStatus={embedStatus} mcpConfig={mcpConfig} />
+            <AiTab
+              config={aiConfig}
+              health={aiHealth}
+              embedStatus={embedStatus}
+              mcpConfig={mcpConfig}
+            />
           ) : null}
           {tab === "stohr" ? <StohrTab status={stohr} /> : null}
           {tab === "plugins" ? <PluginsTab /> : null}

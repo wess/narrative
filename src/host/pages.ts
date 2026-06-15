@@ -117,7 +117,7 @@ const ensureFolder = async (vault: OpenVault, relPath: string): Promise<NodeRow 
 };
 
 // Re-thread the *index + sidecar* for a node now sitting at `newPath` — the
-// disk move has already happened. Shared by `relocate` (Narrative-initiated
+// disk move has already happened. Shared by `relocate` (Bethink-initiated
 // moves) and the filesystem watcher (external moves it correlates).
 export const applyRelocation = (vault: OpenVault, row: NodeRow, newPath: string): void => {
   const oldPath = row.path;
@@ -275,7 +275,7 @@ export const updatePage = async (vault: OpenVault, input: UpdateInput): Promise<
     await relocate(vault, current, target);
   }
 
-  // Narrative-local metadata — index column + sidecar.
+  // Bethink-local metadata — index column + sidecar.
   const metaPatch: Record<string, unknown> = {};
   const sidePatch: Parameters<typeof setMeta>[2] = {};
   if (input.icon !== undefined) {

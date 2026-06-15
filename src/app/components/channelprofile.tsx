@@ -1,9 +1,9 @@
-import { Hash, MessageSquare, Pencil, Users, X } from "lucide-react";
+import { Download, Hash, MessageSquare, Pencil, RefreshCw, Users, X } from "lucide-react";
 import { actions } from "../state/actions.ts";
 import { useApp } from "../state/store.ts";
 
 export const ChannelProfile = () => {
-  const { channels, channelProfileSlug, agents, projects, chat } = useApp();
+  const { channels, channelProfileSlug, agents, projects, chat, channelMessages } = useApp();
   const channel = channelProfileSlug
     ? (channels.find((c) => c.slug === channelProfileSlug) ?? null)
     : null;
@@ -17,6 +17,7 @@ export const ChannelProfile = () => {
   const linkedProjects = channel.projects
     .map((slug) => projects.find((project) => project.slug === slug))
     .filter((project): project is NonNullable<typeof project> => project !== undefined);
+  const transcript = channelMessages.filter((message) => message.channelSlug === channel.slug);
 
   const useChannel = () => {
     actions.setChannel(channel.slug);
@@ -118,9 +119,61 @@ export const ChannelProfile = () => {
               </div>
             </section>
           ) : null}
+
+          <section className="agentprofile-section">
+            <h3>
+              <MessageSquare size={14} /> Transcript
+              <button
+                type="button"
+                className="agentprofile-inline"
+                title="Refresh transcript"
+                onClick={() => void actions.refreshChannelMessages(channel.slug)}
+              >
+                <RefreshCw size={12} />
+              </button>
+            </h3>
+            {transcript.length > 0 ? (
+              <div className="channelprofile-transcript">
+                {transcript.slice(-12).map((message) => {
+                  const agent = message.agentSlug
+                    ? agents.find((item) => item.slug === message.agentSlug)
+                    : null;
+                  return (
+                    <article
+                      key={message.id}
+                      className="channelprofile-message"
+                      data-role={message.role}
+                    >
+                      <header>
+                        <span>{message.role === "user" ? "You" : agent?.name || "Assistant"}</span>
+                        <time dateTime={message.createdAt}>
+                          {new Date(message.createdAt).toLocaleString([], {
+                            month: "short",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </time>
+                      </header>
+                      <p>{message.content}</p>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p>No transcript has been recorded for this channel yet.</p>
+            )}
+          </section>
         </div>
 
         <footer className="agentprofile-foot">
+          <button
+            type="button"
+            className="agentprofile-btn"
+            onClick={() => void actions.exportChannel(channel.slug)}
+          >
+            <Download size={13} /> Export
+          </button>
           <button type="button" className="agentprofile-btn" onClick={editChannel}>
             <Pencil size={13} /> Edit source
           </button>

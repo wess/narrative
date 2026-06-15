@@ -1,6 +1,6 @@
 // Free functions and constants the plugin API module exports: path/string
 // helpers, a frontmatter-grade YAML parser, fuzzy search, and small DOM
-// utilities. None of these touch Narrative state — they're pure helpers.
+// utilities. None of these touch Bethink state — they're pure helpers.
 
 import type { CachedMetadata } from "./metadata.ts";
 

@@ -1,6 +1,6 @@
 # AI assistant
 
-Narrative includes a streaming **AI chat assistant** that can ground its
+Bethink includes a streaming **AI chat assistant** that can ground its
 answers in your own notes — the page you're reading, or your entire vault. It
 is provider-agnostic: use a hosted model, a local one, or anything in between.
 
@@ -16,7 +16,7 @@ The drawer has two grounding toggles:
 - **Use current page** — the page you're viewing is added to the model's
   context, so you can ask "summarise this", "what am I missing here?", or
   "rewrite this section" about the note in front of you.
-- **Search my vault (RAG)** — Narrative retrieves the most relevant pages from
+- **Search my vault (RAG)** — Bethink retrieves the most relevant pages from
   your *whole* vault and feeds them to the model. Ask a question that spans
   many notes — "what did I decide about pricing?" — and the assistant answers
   from what you've actually written. **It cites the pages it used**, so you can
@@ -29,7 +29,7 @@ The drawer has two grounding toggles:
 - **Keyword retrieval** — the default. Works with **every provider**, needs no
   setup, and uses the same ranked full-text search the rest of the app uses.
 - **Semantic retrieval** — opt-in. When the **semantic index** is enabled,
-  Narrative embeds your pages as vectors and retrieves by *meaning* (cosine
+  Bethink embeds your pages as vectors and retrieves by *meaning* (cosine
   similarity), so a question finds relevant pages even when they don't share
   the question's exact words.
 
@@ -43,7 +43,7 @@ note you're viewing.
 
 ## Providers
 
-Narrative speaks three wire protocols across five presets. Choose one in
+Bethink speaks three wire protocols across five presets. Choose one in
 **Settings → AI** (`⌘,`).
 
 | Provider | Default model | API key | Notes |
@@ -68,7 +68,7 @@ commit and sync.
 ## Enabling the semantic index
 
 In **Settings → AI**, turn on **Semantic index**, then run a one-time
-**re-index** of the vault. Narrative asks your provider to embed every page and
+**re-index** of the vault. Bethink asks your provider to embed every page and
 stores the vectors in the in-memory index.
 
 A few things to know:

@@ -106,10 +106,10 @@ export const electronShim = {
   },
   // `remote` and `ipcRenderer` have no web equivalent — fail loudly on use.
   get remote(): never {
-    throw new Error("electron.remote is not available to Narrative plugins.");
+    throw new Error("electron.remote is not available to Bethink plugins.");
   },
   get ipcRenderer(): never {
-    throw new Error("electron.ipcRenderer is not available to Narrative plugins.");
+    throw new Error("electron.ipcRenderer is not available to Bethink plugins.");
   },
 };
 
@@ -123,7 +123,7 @@ export const missingModule = (name: string): unknown =>
         if (prop === "__esModule") return false;
         if (prop === Symbol.toPrimitive || prop === Symbol.toStringTag) return undefined;
         throw new Error(
-          `The "${name}" module isn't available to Narrative plugins — the webview has no Node integration.`,
+          `The "${name}" module isn't available to Bethink plugins — the webview has no Node integration.`,
         );
       },
     },

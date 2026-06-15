@@ -64,6 +64,6 @@ export const buildProvider = async (
 };
 
 export const SYSTEM_PROMPT =
-  "You are the assistant inside Narrative, a personal knowledge base. " +
+  "You are the assistant inside Bethink, a personal knowledge base. " +
   "Be concise and practical. When the user references their pages, ground " +
   "your answer in the provided context.";

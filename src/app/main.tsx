@@ -8,7 +8,7 @@ import { App } from "./app.tsx";
 const root = document.getElementById("root");
 if (root) {
   createRoot(root).render(
-    <BasketProvider app={{ name: "Narrative", id: "io.wess.narrative" }} theme="light">
+    <BasketProvider app={{ name: "Bethink", id: "io.wess.bethink" }} theme="light">
       <App />
     </BasketProvider>,
   );

@@ -67,15 +67,15 @@ const normalizeUnit = (unit: Unit): string => {
   return "millisecond";
 };
 
-class NarrativeMoment {
+class BethinkMoment {
   private _d: Date;
   private _valid: boolean;
 
-  constructor(input?: NarrativeMoment | Date | string | number, format?: string) {
+  constructor(input?: BethinkMoment | Date | string | number, format?: string) {
     if (input === undefined) {
       this._d = new Date();
       this._valid = true;
-    } else if (input instanceof NarrativeMoment) {
+    } else if (input instanceof BethinkMoment) {
       this._d = new Date(input._d.getTime());
       this._valid = input._valid;
     } else if (input instanceof Date) {
@@ -87,7 +87,7 @@ class NarrativeMoment {
     } else {
       // String. `format` is accepted but only loosely honoured — we lean on
       // Date parsing, then on a couple of common explicit layouts.
-      const parsed = NarrativeMoment.parseString(input, format);
+      const parsed = BethinkMoment.parseString(input, format);
       this._d = parsed;
       this._valid = !Number.isNaN(parsed.getTime());
     }
@@ -125,8 +125,8 @@ class NarrativeMoment {
     return this._valid;
   }
 
-  clone(): NarrativeMoment {
-    return new NarrativeMoment(this);
+  clone(): BethinkMoment {
+    return new BethinkMoment(this);
   }
 
   toDate(): Date {
@@ -259,8 +259,8 @@ class NarrativeMoment {
     return this;
   }
 
-  diff(other: NarrativeMoment | Date | string | number, unit?: Unit, precise = false): number {
-    const o = other instanceof NarrativeMoment ? other : new NarrativeMoment(other);
+  diff(other: BethinkMoment | Date | string | number, unit?: Unit, precise = false): number {
+    const o = other instanceof BethinkMoment ? other : new BethinkMoment(other);
     const ms = this._d.getTime() - o._d.getTime();
     if (!unit) return ms;
     const u = normalizeUnit(unit);
@@ -278,30 +278,30 @@ class NarrativeMoment {
     return precise ? raw : Math.trunc(raw);
   }
 
-  isSame(other: NarrativeMoment | Date | string | number, unit?: Unit): boolean {
-    const o = other instanceof NarrativeMoment ? other : new NarrativeMoment(other);
+  isSame(other: BethinkMoment | Date | string | number, unit?: Unit): boolean {
+    const o = other instanceof BethinkMoment ? other : new BethinkMoment(other);
     if (!unit) return this._d.getTime() === o._d.getTime();
     return this.clone().startOf(unit).valueOf() === o.clone().startOf(unit).valueOf();
   }
-  isBefore(other: NarrativeMoment | Date | string | number, unit?: Unit): boolean {
-    const o = other instanceof NarrativeMoment ? other : new NarrativeMoment(other);
+  isBefore(other: BethinkMoment | Date | string | number, unit?: Unit): boolean {
+    const o = other instanceof BethinkMoment ? other : new BethinkMoment(other);
     if (!unit) return this._d.getTime() < o._d.getTime();
     return this.clone().startOf(unit).valueOf() < o.clone().startOf(unit).valueOf();
   }
-  isAfter(other: NarrativeMoment | Date | string | number, unit?: Unit): boolean {
-    const o = other instanceof NarrativeMoment ? other : new NarrativeMoment(other);
+  isAfter(other: BethinkMoment | Date | string | number, unit?: Unit): boolean {
+    const o = other instanceof BethinkMoment ? other : new BethinkMoment(other);
     if (!unit) return this._d.getTime() > o._d.getTime();
     return this.clone().startOf(unit).valueOf() > o.clone().startOf(unit).valueOf();
   }
-  isSameOrBefore(other: NarrativeMoment | Date | string | number, unit?: Unit): boolean {
+  isSameOrBefore(other: BethinkMoment | Date | string | number, unit?: Unit): boolean {
     return this.isSame(other, unit) || this.isBefore(other, unit);
   }
-  isSameOrAfter(other: NarrativeMoment | Date | string | number, unit?: Unit): boolean {
+  isSameOrAfter(other: BethinkMoment | Date | string | number, unit?: Unit): boolean {
     return this.isSame(other, unit) || this.isAfter(other, unit);
   }
   isBetween(
-    a: NarrativeMoment | Date | string | number,
-    b: NarrativeMoment | Date | string | number,
+    a: BethinkMoment | Date | string | number,
+    b: BethinkMoment | Date | string | number,
     unit?: Unit,
   ): boolean {
     return this.isAfter(a, unit) && this.isBefore(b, unit);
@@ -384,10 +384,10 @@ class NarrativeMoment {
 }
 
 type MomentFactory = {
-  (input?: NarrativeMoment | Date | string | number, format?: string): NarrativeMoment;
-  unix: (seconds: number) => NarrativeMoment;
-  utc: (input?: NarrativeMoment | Date | string | number) => NarrativeMoment;
-  isMoment: (value: unknown) => value is NarrativeMoment;
+  (input?: BethinkMoment | Date | string | number, format?: string): BethinkMoment;
+  unix: (seconds: number) => BethinkMoment;
+  utc: (input?: BethinkMoment | Date | string | number) => BethinkMoment;
+  isMoment: (value: unknown) => value is BethinkMoment;
   now: () => number;
   duration: (
     amount: number,
@@ -395,13 +395,13 @@ type MomentFactory = {
   ) => { asMilliseconds: () => number; asSeconds: () => number };
 };
 
-const moment = ((input?: NarrativeMoment | Date | string | number, format?: string) =>
-  new NarrativeMoment(input, format)) as MomentFactory;
+const moment = ((input?: BethinkMoment | Date | string | number, format?: string) =>
+  new BethinkMoment(input, format)) as MomentFactory;
 
-moment.unix = (seconds: number): NarrativeMoment => new NarrativeMoment(seconds * 1000);
-moment.utc = (input?: NarrativeMoment | Date | string | number): NarrativeMoment =>
-  new NarrativeMoment(input);
-moment.isMoment = (value: unknown): value is NarrativeMoment => value instanceof NarrativeMoment;
+moment.unix = (seconds: number): BethinkMoment => new BethinkMoment(seconds * 1000);
+moment.utc = (input?: BethinkMoment | Date | string | number): BethinkMoment =>
+  new BethinkMoment(input);
+moment.isMoment = (value: unknown): value is BethinkMoment => value instanceof BethinkMoment;
 moment.now = (): number => Date.now();
 moment.duration = (amount: number, unit: Unit = "millisecond") => {
   const divisor: Record<string, number> = {
@@ -419,4 +419,4 @@ moment.duration = (amount: number, unit: Unit = "millisecond") => {
 };
 
 export type { Unit as MomentUnit };
-export { moment, NarrativeMoment };
+export { BethinkMoment, moment };

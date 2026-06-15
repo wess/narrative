@@ -1,5 +1,5 @@
 // `Vault` + the file types (`TFile`, `TFolder`, `TAbstractFile`). This is the
-// plugin-API face of Narrative's page store: the `bridge` projects pages onto a
+// plugin-API face of Bethink's page store: the `bridge` projects pages onto a
 // virtual `.md` filesystem, and the Vault keeps stable `TFile` / `TFolder`
 // instances over that projection (plugins compare files by identity) plus
 // re-emits the bridge's create/modify/delete/rename signals as `Events`.
@@ -27,7 +27,7 @@ export class TFile extends TAbstractFile {
   basename = "";
   extension = "";
   stat: FileStats = { ctime: 0, mtime: 0, size: 0 };
-  /** Narrative's page id — the real key behind the virtual path. */
+  /** Bethink's page id — the real key behind the virtual path. */
   id = 0;
 }
 
@@ -42,10 +42,10 @@ export class TFolder extends TAbstractFile {
 
 // `app.vault.adapter` — the low-level path API. We have no real filesystem,
 // so it delegates to the same page projection the Vault uses.
-class NarrativeDataAdapter {
+class BethinkDataAdapter {
   constructor(private vault: Vault) {}
   getName(): string {
-    return "narrative";
+    return "bethink";
   }
   async exists(path: string): Promise<boolean> {
     return this.vault.getAbstractFileByPath(path) !== null;
@@ -94,7 +94,7 @@ class NarrativeDataAdapter {
 }
 
 export class Vault extends Events {
-  adapter: NarrativeDataAdapter;
+  adapter: BethinkDataAdapter;
   configDir = "/.narrative";
 
   private bridge: VaultBridge;
@@ -104,7 +104,7 @@ export class Vault extends Events {
   constructor(bridge?: VaultBridge) {
     super();
     this.bridge = bridge ?? getBridge();
-    this.adapter = new NarrativeDataAdapter(this);
+    this.adapter = new BethinkDataAdapter(this);
     this.reconcile(this.bridge.index());
 
     const listener: BridgeListener = {
@@ -198,7 +198,7 @@ export class Vault extends Events {
   // --- reads --------------------------------------------------------------
 
   getName(): string {
-    return "Narrative";
+    return "Bethink";
   }
 
   getRoot(): TFolder {

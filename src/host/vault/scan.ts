@@ -1,6 +1,6 @@
 // Walk a vault folder into a flat list of node descriptors — every
 // subfolder and every `.md` file. Dotfolders (`.narrative`, `.git`, …) and
-// non-Markdown files are skipped: attachments aren't pages, and Narrative's
+// non-Markdown files are skipped: attachments aren't pages, and Bethink's
 // tree only shows folders and notes.
 
 import type { Dirent } from "node:fs";

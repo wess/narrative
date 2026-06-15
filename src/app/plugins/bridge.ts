@@ -1,5 +1,5 @@
 // The vault adapter. Plugins think in terms of a folder of `.md`
-// files; Narrative stores pages in SQLite, addressed by numeric id and
+// files; Bethink stores pages in SQLite, addressed by numeric id and
 // arranged in a parent/child tree. The bridge maintains a two-way mapping
 // between a page's *virtual path* (its title-chain through the hierarchy plus
 // `.md`) and its id, rebuilds that index whenever the page tree changes, and

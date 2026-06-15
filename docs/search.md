@@ -1,12 +1,12 @@
 # Search & organisation
 
-A growing vault needs more than links. Narrative gives you folders, tags,
+A growing vault needs more than links. Bethink gives you folders, tags,
 ranked full-text search, daily notes, and templates to keep hundreds of pages
 navigable.
 
 ## Full-text search
 
-Open search with `⌘⇧F`. Narrative searches every page's content and returns
+Open search with `⌘⇧F`. Bethink searches every page's content and returns
 **ranked results with snippets** — the matching text shown in context so you
 can recognise the right page at a glance.
 

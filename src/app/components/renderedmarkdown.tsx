@@ -1,5 +1,5 @@
 // Renders a markdown body to HTML *and* runs every plugin-registered markdown
-// post-processor / code-block processor over the result. Narrative's own
+// post-processor / code-block processor over the result. Bethink's own
 // renderer stays the source of truth; this is the seam that lets a plugin's
 // processors fire anywhere markdown is shown (reading pane, hover preview,
 // page embeds).

@@ -1,6 +1,6 @@
 # The editor
 
-Narrative's editor is a **block editor** — a Notion-style writing surface where
+Bethink's editor is a **block editor** — a Notion-style writing surface where
 a page is a stack of blocks you can create, transform, reorder, and delete.
 Underneath, every page is a plain Markdown file: the editor round-trips
 blocks ↔ Markdown on every load and save, so **what you see is what's on disk.**
@@ -66,7 +66,7 @@ when you highlight text, so you can apply formatting with the mouse too.
 
 ## Math
 
-Narrative renders math with **KaTeX**. Use `$$ … $$` on its own block for
+Bethink renders math with **KaTeX**. Use `$$ … $$` on its own block for
 display math, or `$ … $` within text for inline math. The source is stored as
 ordinary LaTeX between dollar signs in the Markdown file.
 
@@ -74,7 +74,7 @@ ordinary LaTeX between dollar signs in the Markdown file.
 
 There are two ways to put an image on a page:
 
-- **Paste it.** Copy an image anywhere, then paste into a page. Narrative saves
+- **Paste it.** Copy an image anywhere, then paste into a page. Bethink saves
   it into an `attachments/` folder inside the vault and inserts an image block.
   The picture is now a real file in your vault — it travels with it, and
   [Stohr sync](stohr.md) carries it like any page.

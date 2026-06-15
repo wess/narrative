@@ -1,6 +1,6 @@
 // `MetadataCache` — the parsed-document index: headings, links,
 // embeds, tags and frontmatter for every file. The API is synchronous,
-// but Narrative's page bodies live behind async IPC, so the cache fills
+// but Bethink's page bodies live behind async IPC, so the cache fills
 // lazily: `getFileCache` returns what's warm and kicks off a fetch for what
 // isn't, firing `changed` when a parse lands — the way a lazily-filled
 // cache behaves while a vault is loading. Bodies that arrive via the bridge's
@@ -205,7 +205,7 @@ export class MetadataCache extends Events {
     this.trigger("resolved");
   }
 
-  // Resolve a wiki-link target to a file. Narrative links by title, so we
+  // Resolve a wiki-link target to a file. Bethink links by title, so we
   // match on basename (case-insensitive), preferring the same folder.
   getFirstLinkpathDest(linkpath: string, sourcePath: string): TFile | null {
     const want = linkpath.trim().toLowerCase();

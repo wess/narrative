@@ -1,13 +1,13 @@
 # Building & distribution
 
-Narrative is a [butter](../butter/) desktop app built with
+Bethink is a [butter](../butter/) desktop app built with
 **[Bun](https://bun.sh)**. This guide covers running it in development,
 compiling a binary, and bundling it for distribution.
 
 ## Prerequisites
 
 - **[Bun](https://bun.sh)** — the runtime, package manager, and bundler.
-  Narrative is Bun-only; there is no npm/Node build path.
+  Bethink is Bun-only; there is no npm/Node build path.
 
 Install dependencies once:
 
@@ -25,12 +25,12 @@ This runs `butter dev`: it compiles the native shim, opens the app in a native
 window, and watches your source for changes with **hot reload**. Edit a file in
 `src/` and the app updates in place.
 
-On first launch, with no vaults yet, Narrative seeds a starter vault so you have
+On first launch, with no vaults yet, Bethink seeds a starter vault so you have
 content to work with immediately.
 
 ## Quality checks
 
-Narrative's quality gate is type-checking, linting, and tests:
+Bethink's quality gate is type-checking, linting, and tests:
 
 ```bash
 bun run typecheck   # tsc --noEmit — full type check
@@ -50,7 +50,7 @@ bun run build
 ```
 
 This runs `butter compile` and produces a **single-file binary** at
-`dist/narrative` — the whole app, bundled webview included, in one executable.
+`dist/bethink` — the whole app, bundled webview included, in one executable.
 It needs no separate runtime to run, and it targets whichever OS you build on.
 
 ## Bundling per platform
@@ -64,15 +64,15 @@ application package for the OS you're on:
 
 | Platform | `bun run bundle` produces |
 |---|---|
-| macOS | `dist/Narrative.app` — an `.app` bundle with `Info.plist` |
-| Linux | `dist/Narrative.AppDir` — an AppDir with a `.desktop` file |
-| Windows | `dist/Narrative/` — a folder with `Narrative.exe` |
+| macOS | `dist/Bethink.app` — an `.app` bundle with `Info.plist` |
+| Linux | `dist/Bethink.AppDir` — an AppDir with a `.desktop` file |
+| Windows | `dist/Bethink/` — a folder with `Bethink.exe` |
 
 The bundle's identity comes from `butter.yaml`:
 
 ```yaml
 bundle:
-  identifier: io.wess.narrative
+  identifier: io.wess.bethink
   category: public.app-category.productivity
 ```
 
@@ -88,12 +88,12 @@ artifact:
 | Platform | `bun run package` produces |
 |---|---|
 | macOS | a disk image / installer from the `.app` |
-| Linux | `dist/Narrative-x86_64.AppImage` (`appimagetool` is fetched automatically) |
-| Windows | `dist/Narrative-setup.exe` if NSIS is installed, otherwise a portable `.zip` |
+| Linux | `dist/Bethink-x86_64.AppImage` (`appimagetool` is fetched automatically) |
+| Windows | `dist/Bethink-setup.exe` if NSIS is installed, otherwise a portable `.zip` |
 
 ## Cross-platform builds
 
-Narrative builds on **macOS, Linux, and Windows** — the native webview is the
+Bethink builds on **macOS, Linux, and Windows** — the native webview is the
 OS's own (WKWebView, WebKitGTK, WebView2), so there's no bundled browser on
 any platform.
 
@@ -119,7 +119,7 @@ and bundle metadata:
 
 ```yaml
 window:
-  title: "Narrative"
+  title: "Bethink"
   width: 1340
   height: 860
   minWidth: 760
@@ -157,7 +157,7 @@ src/
     plugins/   the plugin runtime — Obsidian API, loader, vault adapter
 ```
 
-Narrative vendors two of its own libraries into the repo:
+Bethink vendors two of its own libraries into the repo:
 
 - **[butter](../butter/)** — the desktop framework (Bun host + native webview).
 - **[basket](../basket/)** — the `@basket/*` packages used as the standard

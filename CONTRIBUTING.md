@@ -1,11 +1,11 @@
-# Contributing to Narrative
+# Contributing to Bethink
 
-Thanks for your interest in Narrative — a native, file-backed knowledge base.
+Thanks for your interest in Bethink — a native, file-backed knowledge base.
 This guide covers what you need to develop, test, and submit changes.
 
 ## Prerequisites
 
-Narrative runs on **[Bun](https://bun.sh)** — it is Bun-only, with no
+Bethink runs on **[Bun](https://bun.sh)** — it is Bun-only, with no
 npm/Node build path. Install Bun first, then:
 
 ```bash
@@ -29,7 +29,7 @@ tests; the round-trip, parsing, and search tests in `test/` show the pattern.
 
 ## Architecture
 
-Before changing much, read **[docs/overview.md](docs/overview.md)** — Narrative
+Before changing much, read **[docs/overview.md](docs/overview.md)** — Bethink
 runs as two processes (a Bun host and a React webview) that talk only over the
 typed IPC contract in `src/shared/channels.ts`. The vault is a folder of
 Markdown files and is always the source of truth; the SQLite index is derived

@@ -1,6 +1,6 @@
 # Tutorial 5 — Using the AI assistant
 
-Narrative has a built-in AI assistant that can answer questions grounded in
+Bethink has a built-in AI assistant that can answer questions grounded in
 **your own notes**. In this tutorial you'll connect a provider and chat with a
 model that actually knows what you've written.
 
@@ -10,7 +10,7 @@ Press **`⌘,`** and go to the **AI** section.
 
 ## Step 2 — Choose a provider
 
-Narrative works with five provider presets. Pick whichever suits you:
+Bethink works with five provider presets. Pick whichever suits you:
 
 | Provider | Needs a key? | Good for |
 |---|---|---|
@@ -26,7 +26,7 @@ the **Ollama (local)** preset.
 
 ## Step 3 — Add your key (if needed)
 
-For a hosted provider, paste your API key into the key field. Narrative stores
+For a hosted provider, paste your API key into the key field. Bethink stores
 it in your **operating system's keychain** — never in a file in the vault — so
 your vault stays safe to sync and commit.
 
@@ -36,7 +36,7 @@ requires you to supply both).
 
 ## Step 4 — Test the connection
 
-Click **Test**. Narrative sends a tiny prompt and reports either success or the
+Click **Test**. Bethink sends a tiny prompt and reports either success or the
 exact error. Don't move on until this passes.
 
 ## Step 5 — Open the chat drawer
@@ -76,7 +76,7 @@ finds relevant pages even when they don't share the question's exact wording.
 To enable it:
 
 1. In **Settings → AI**, turn on **Semantic index**.
-2. Run the **re-index** action once. Narrative embeds every page as a vector.
+2. Run the **re-index** action once. Bethink embeds every page as a vector.
 
 Your provider must offer an **embeddings API** — OpenAI, Ollama, and Ollama
 Cloud all do. After that, new and edited pages are re-embedded automatically in

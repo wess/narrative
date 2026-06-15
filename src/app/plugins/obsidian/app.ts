@@ -181,7 +181,7 @@ export class App {
 
   // Some plugins read `app.appId`; give them something stable.
   get appId(): string {
-    return "narrative";
+    return "bethink";
   }
 
   // Resolve a daily-note style request — handy for plugins that mirror the

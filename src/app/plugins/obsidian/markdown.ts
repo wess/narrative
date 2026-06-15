@@ -1,7 +1,7 @@
 // Markdown rendering for plugins: `MarkdownRenderer.render(...)` turns a
-// markdown string into DOM (reusing Narrative's own renderer) and then runs
+// markdown string into DOM (reusing Bethink's own renderer) and then runs
 // every registered post-processor over the result — the same pipeline
-// Narrative's reading pane uses, so a plugin's processors fire everywhere
+// Bethink's reading pane uses, so a plugin's processors fire everywhere
 // markdown is shown. `MarkdownRenderChild` lets a processor tie DOM it
 // created to a component lifecycle.
 
@@ -53,7 +53,7 @@ export const makeContext = (
 });
 
 // Run every registered markdown post-processor + code-block processor over an
-// already-rendered element. This is the seam Narrative's own components call
+// already-rendered element. This is the seam Bethink's own components call
 // after `renderMarkdown`.
 export const runMarkdownProcessors = async (
   el: HTMLElement,

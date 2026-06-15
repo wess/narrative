@@ -1,6 +1,6 @@
 # Keyboard shortcuts
 
-Narrative is built to be driven from the keyboard. `⌘` is the modifier on
+Bethink is built to be driven from the keyboard. `⌘` is the modifier on
 macOS; use `Ctrl` on Linux and Windows.
 
 ## File

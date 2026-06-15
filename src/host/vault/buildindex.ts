@@ -1,6 +1,6 @@
 // Build the in-memory derived index for a vault folder: scan the folder,
 // insert a row per node (resolving each `parentId` from the path hierarchy),
-// layer the Narrative-local sidecar metadata on top, and reindex every
+// layer the Bethink-local sidecar metadata on top, and reindex every
 // file's links / tags / full-text. The result is a fully-formed `OpenVault`
 // minus its watcher (Stage 3 attaches that). Rebuilt from scratch on every
 // open — there is no on-disk index to go stale.

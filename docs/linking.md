@@ -1,19 +1,19 @@
 # Linking & the graph
 
-Narrative is built for **linked thinking**. Folders organise; links *connect*.
-A vault becomes useful when its pages reference each other, and Narrative makes
+Bethink is built for **linked thinking**. Folders organise; links *connect*.
+A vault becomes useful when its pages reference each other, and Bethink makes
 that the path of least resistance.
 
 ## Wiki links
 
 Type `[[` anywhere in a page to start a **wiki link**. An autocomplete list of
-pages appears as you type — pick one and Narrative inserts the link.
+pages appears as you type — pick one and Bethink inserts the link.
 
 - **`[[Page Title]]`** links to a page by title.
 - **`[[Page Title#Heading]]`** links to a specific heading and scrolls there
   when followed.
 - **Clicking a link** opens the target page. If the page doesn't exist yet,
-  Narrative **creates it** — so you can link first and write later. Linking to
+  Bethink **creates it** — so you can link first and write later. Linking to
   an idea is how you bring its page into being.
 
 Links are matched by title, case-insensitively. Because the index resolves
@@ -46,7 +46,7 @@ target page without leaving the one you're on. It's the quickest way to check
 
 ## History: back & forward
 
-Narrative keeps a navigation history. Move **back** and **forward** through the
+Bethink keeps a navigation history. Move **back** and **forward** through the
 pages you've visited, just like a browser. Following a chain of links and
 retracing your steps is frictionless.
 

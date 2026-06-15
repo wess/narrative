@@ -10,6 +10,8 @@ import {
   PanelRight,
   Pin,
   Search,
+  Shapes,
+  TableProperties,
   Trash2,
 } from "lucide-react";
 import type { TreeNode } from "../../shared/types.ts";
@@ -110,6 +112,16 @@ export const Topbar = () => {
         {view === "tags" ? (
           <span className="view-label">
             <Hash size={15} /> {tagFilter.tag ?? "Tags"}
+          </span>
+        ) : null}
+        {view === "bases" ? (
+          <span className="view-label">
+            <TableProperties size={15} /> Table
+          </span>
+        ) : null}
+        {view === "canvas" ? (
+          <span className="view-label">
+            <Shapes size={15} /> Canvas
           </span>
         ) : null}
       </div>

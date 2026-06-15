@@ -1,5 +1,5 @@
 // `setIcon` / `addIcon` / `getIcon` — the plugin icon API. The icon set
-// *is* Lucide, which Narrative already bundles (`lucide-react`), so we render
+// *is* Lucide, which Bethink already bundles (`lucide-react`), so we render
 // the matching Lucide component to a static SVG string once and cache it.
 // `addIcon` lets a plugin register its own SVG; unknown names fall back to a
 // neutral placeholder so a missing icon never breaks a ribbon button.

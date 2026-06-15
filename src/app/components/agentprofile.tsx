@@ -1,4 +1,5 @@
-import { Bot, MessageSquare, Pencil, Sparkles, X } from "lucide-react";
+import { Bot, Download, MessageSquare, Pencil, Sparkles, X } from "lucide-react";
+import { useEffect } from "react";
 import { PROVIDERS } from "../../shared/providers.ts";
 import { actions } from "../state/actions.ts";
 import { useApp } from "../state/store.ts";
@@ -12,14 +13,27 @@ const roleDefinition = (prompt: string): string => {
 };
 
 export const AgentProfile = () => {
-  const { agents, agentProfileSlug, chat } = useApp();
+  const { agents, agentProfileSlug, chat, agentRuns } = useApp();
   const agent = agentProfileSlug ? (agents.find((a) => a.slug === agentProfileSlug) ?? null) : null;
+
+  useEffect(() => {
+    if (agentProfileSlug) void actions.refreshRunTimeline();
+  }, [agentProfileSlug]);
 
   if (!agent) return null;
 
   const active = chat.agentSlug === agent.slug;
   const provider = agent.provider ? PROVIDERS[agent.provider].label : "App default";
   const model = agent.model ?? "App default";
+  const runs = agentRuns.filter((run) => run.agentSlug === agent.slug);
+  const okRuns = runs.filter((run) => run.status === "ok").length;
+  const successRate = runs.length > 0 ? `${Math.round((okRuns / runs.length) * 100)}%` : "No runs";
+  const hasAllTools = agent.tools.includes("*");
+  const toolLabel = hasAllTools
+    ? "All tools"
+    : agent.tools.length === 0
+      ? "No tools"
+      : agent.tools.length;
 
   const useAgent = () => {
     actions.setAgent(agent.slug);
@@ -79,7 +93,15 @@ export const AgentProfile = () => {
             </div>
             <div>
               <span>Tools</span>
-              <strong>{agent.tools.length === 0 ? "All available" : agent.tools.length}</strong>
+              <strong>{toolLabel}</strong>
+            </div>
+            <div>
+              <span>Runs</span>
+              <strong>{runs.length}</strong>
+            </div>
+            <div>
+              <span>Success</span>
+              <strong>{successRate}</strong>
             </div>
           </div>
 
@@ -87,19 +109,31 @@ export const AgentProfile = () => {
             <h3>
               <Bot size={14} /> Tool access
             </h3>
-            {agent.tools.length > 0 ? (
+            {hasAllTools ? (
+              <p>This agent can use every registered tool.</p>
+            ) : agent.tools.length > 0 ? (
               <div className="agentprofile-tools">
                 {agent.tools.map((tool) => (
                   <span key={tool}>{tool}</span>
                 ))}
               </div>
             ) : (
-              <p>This agent can use every registered vault tool.</p>
+              <p>
+                This agent has no tool access. It can answer from chat context but cannot inspect or
+                change vault/project data.
+              </p>
             )}
           </section>
         </div>
 
         <footer className="agentprofile-foot">
+          <button
+            type="button"
+            className="agentprofile-btn"
+            onClick={() => void actions.exportAgent(agent.slug)}
+          >
+            <Download size={13} /> Export
+          </button>
           <button type="button" className="agentprofile-btn" onClick={editAgent}>
             <Pencil size={13} /> Edit source
           </button>

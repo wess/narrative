@@ -1,7 +1,7 @@
 # Tutorial 3 — Linking & the graph
 
 A pile of notes becomes a *knowledge base* when the notes connect. This
-tutorial covers Narrative's core feature: linking pages with `[[wiki links]]`,
+tutorial covers Bethink's core feature: linking pages with `[[wiki links]]`,
 and seeing those connections through backlinks and the graph.
 
 ## Step 1 — Make a wiki link
@@ -9,7 +9,7 @@ and seeing those connections through backlinks and the graph.
 Open `My First Note` from the previous tutorial. In a text block, type **`[[`**.
 
 An autocomplete list of your pages appears. Type a few letters of `Ideas`,
-select it, and Narrative inserts a link: `[[Ideas]]`.
+select it, and Bethink inserts a link: `[[Ideas]]`.
 
 Click that link — it opens the *Ideas* page. You've connected two notes.
 
@@ -19,7 +19,7 @@ Here's the trick that changes how you write: **you can link to a page that
 doesn't exist yet.**
 
 In `My First Note`, type `[[Reading List]]` — a page you haven't created.
-Click it. Narrative **creates `Reading List.md`** and opens it.
+Click it. Bethink **creates `Reading List.md`** and opens it.
 
 This is the natural workflow: when you mention an idea, link it. The page is
 created the moment you need it. Write down a few books on the new *Reading

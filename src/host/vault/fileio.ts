@@ -1,6 +1,6 @@
 // Every filesystem mutation the vault makes goes through here, so two things
 // stay uniform: parent directories are created on demand, and each write is
-// recorded as a "self-write" the watcher can ignore (otherwise Narrative's
+// recorded as a "self-write" the watcher can ignore (otherwise Bethink's
 // own saves would echo back through the watcher as external changes).
 
 import { mkdir, rename, rm, stat } from "node:fs/promises";

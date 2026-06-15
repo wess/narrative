@@ -1,6 +1,6 @@
 # Plugins
 
-Narrative has an **extensible plugin system**. Plugins add commands, views,
+Bethink has an **extensible plugin system**. Plugins add commands, views,
 ribbon icons, settings, and Markdown processors — and the API is
 **Obsidian-compatible**, so the existing world of Obsidian plugin knowledge and
 much of its code applies directly.
@@ -74,7 +74,7 @@ leftover commands, styles, or listeners.
 
 ## The plugin API
 
-A plugin's `require("obsidian")` resolves to Narrative's API module. The
+A plugin's `require("obsidian")` resolves to Bethink's API module. The
 surface includes, among much else:
 
 - `Plugin`, `Component` — the lifecycle base classes.
@@ -91,7 +91,7 @@ surface includes, among much else:
 
 ## The vault adapter
 
-The plugin `Vault` and `MetadataCache` APIs are wired onto Narrative's **real
+The plugin `Vault` and `MetadataCache` APIs are wired onto Bethink's **real
 file-backed vault**. When a plugin calls `vault.read`, `vault.modify`,
 `vault.create`, or `vault.delete`, it operates on actual `.md` files; the
 `create` / `modify` / `rename` events fire from genuine filesystem activity.

@@ -1,6 +1,6 @@
 // `Workspace`, `WorkspaceLeaf`, `View` / `ItemView` / `MarkdownView`. This is
 // the loosest part of the shim: a full workspace tiles an arbitrary layout of leaves,
-// while Narrative has one editor area plus tabs. We model a single main leaf
+// while Bethink has one editor area plus tabs. We model a single main leaf
 // (proxying the editor) and a pool of plugin leaves that custom `ItemView`s
 // mount into — rendered by the app shell in a dedicated side panel. Honest
 // about the constraint, faithful for the common "open my view" pattern.
@@ -101,7 +101,7 @@ export abstract class ItemView extends View {
   }
 }
 
-// A read-only view onto Narrative's active page — what
+// A read-only view onto Bethink's active page — what
 // `getActiveViewOfType(MarkdownView)` hands back.
 export class MarkdownView extends ItemView {
   file: TFile | null = null;
@@ -324,7 +324,7 @@ export class Workspace extends Events {
     else this._layoutReadyCbs.push(() => callback());
   }
 
-  // The runtime calls this when Narrative's active page changes, so the main
+  // The runtime calls this when Bethink's active page changes, so the main
   // leaf's MarkdownView tracks it and `file-open` fires for plugins.
   notifyActiveFile(file: TFile | null): void {
     const view = this.mainLeaf.view;

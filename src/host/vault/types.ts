@@ -1,6 +1,6 @@
 // Shared shapes for the file-backed vault. The vault is a folder of Markdown
 // files on disk; an `OpenVault` bundles the folder with its in-memory derived
-// index, the small per-vault config, and the Narrative-local UI sidecar.
+// index, the small per-vault config, and the Bethink-local UI sidecar.
 
 import type { DB } from "@basket/db";
 
@@ -9,7 +9,7 @@ export type VaultConfig = {
   readonly templatesFolder: string; // the templates folder, e.g. "Templates"
 };
 
-// Narrative-local per-node UI metadata. Persisted in `.narrative/ui.json`
+// Bethink-local per-node UI metadata. Persisted in `.narrative/ui.json`
 // inside the vault so it travels with the vault but never touches the
 // Markdown content. Keyed by vault-relative path.
 export type NodeMeta = {

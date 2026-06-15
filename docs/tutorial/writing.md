@@ -1,6 +1,6 @@
 # Tutorial 2 — Writing your first notes
 
-Now that Narrative is running, let's write. This tutorial covers the **block
+Now that Bethink is running, let's write. This tutorial covers the **block
 editor** — creating pages, working with blocks, the slash menu, and the
 Markdown shortcuts that make writing fast.
 
@@ -19,7 +19,7 @@ own block. Type a sentence, press `Enter`, and you've started a new block.
 Write a few lines:
 
 ```
-This is my first note in Narrative.
+This is my first note in Bethink.
 I'm learning how the block editor works.
 ```
 
@@ -82,7 +82,7 @@ A few block types worth knowing early:
 
 ## Step 8 — It's all Markdown
 
-Open `My First Note.md` in a plain text editor outside Narrative. Everything
+Open `My First Note.md` in a plain text editor outside Bethink. Everything
 you just wrote — the headings, lists, callout, code — is there as ordinary
 Markdown. The block editor is a *view*; the file is the truth.
 

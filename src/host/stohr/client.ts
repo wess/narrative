@@ -1,4 +1,4 @@
-// A minimal HTTP client for a Stohr instance — just the calls Narrative
+// A minimal HTTP client for a Stohr instance — just the calls Bethink
 // needs to connect and verify an account. Stohr authenticates with an
 // `Authorization: Bearer <token>` header (a `stohr_pat_…` personal access
 // token or a login JWT). Runs on the host, so it escapes the webview's CORS.

@@ -4,10 +4,13 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   closeMemory,
+  deleteMemory,
   listChannelMemories,
   listGlobalMemories,
+  listMemories,
   memoryContext,
   rememberTurn,
+  setMemoryPinned,
 } from "../src/host/agents/memory.ts";
 
 const roots: string[] = [];
@@ -79,5 +82,22 @@ describe("agent memory", () => {
     expect(context).toContain("Channel memory (research):");
     expect(context).toContain("short answers");
     expect(context).toContain("source review");
+  });
+
+  test("pins and deletes memories for user management", async () => {
+    const root = await tempRoot();
+    await rememberTurn(root, {
+      user: "Keep this around.",
+      assistant: "Stored.",
+    });
+    const [memory] = await listMemories(root);
+    expect(memory?.pinned).toBe(false);
+
+    await setMemoryPinned(root, memory?.id ?? -1, true);
+    const [pinned] = await listMemories(root);
+    expect(pinned?.pinned).toBe(true);
+
+    await deleteMemory(root, pinned?.id ?? -1);
+    expect(await listMemories(root)).toHaveLength(0);
   });
 });

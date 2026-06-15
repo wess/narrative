@@ -61,7 +61,7 @@ export const formatToolResult = (name: string, output: unknown): string => {
 export const formatToolPrompt = (tools: readonly Tool[]): string => {
   if (tools.length === 0) return "";
   const catalog = tools.map((t) => `- ${t.name} — ${t.description}\n  args: ${t.usage}`).join("\n");
-  return `You have access to vault tools that read and edit the user's Narrative knowledge base.
+  return `You have access to vault tools that read and edit the user's Bethink knowledge base.
 
 To call a tool, emit a block exactly like this — nothing else on those lines:
 

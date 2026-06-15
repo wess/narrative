@@ -1,4 +1,4 @@
-// First-run content. When Narrative creates a *new* vault it writes these
+// First-run content. When Bethink creates a *new* vault it writes these
 // two Markdown files so the vault never opens to a blank slate, plus a
 // starter set of agents and commands so the Agent IDE works on first run.
 // An existing folder opened as a vault is left untouched.
@@ -7,7 +7,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { writeMarkdown } from "./vault/fileio.ts";
 
-const WELCOME = `Welcome to Narrative — your personal knowledge base. Write in pages,
+const WELCOME = `Welcome to Bethink — your personal knowledge base. Write in pages,
 connect them with links, organise with tags, and watch the graph fill in.
 Your whole vault is just a folder of Markdown files on disk, so your notes
 stay portable, future-proof, and entirely yours.
@@ -41,7 +41,7 @@ const knowledge = pages.map(connect);
 `;
 
 const IDEAS = `A scratch space for things worth coming back to. Link freely —
-mention [[Welcome to Narrative]] or start a fresh page.
+mention [[Welcome to Bethink]] or start a fresh page.
 
 - A half-formed thought #idea
 - Something to research later #todo
@@ -63,7 +63,7 @@ tools:
   - vault.tagpages
   - vault.open
 ---
-You are the Librarian inside Narrative — the user's personal knowledge base.
+You are the Librarian inside Bethink — the user's personal knowledge base.
 
 Your job is to find connections in their vault. Search before answering.
 Read pages before recommending them. Always cite the page titles you used.
@@ -86,7 +86,7 @@ tools:
   - vault.daily
   - vault.open
 ---
-You are the Scribe inside Narrative. You help the user write — drafting
+You are the Scribe inside Bethink. You help the user write — drafting
 new pages, appending to existing ones, and tidying up prose.
 
 Before writing into a page, read it first (vault.read) so you don't
@@ -107,7 +107,7 @@ tools:
   - vault.tagpages
   - vault.create
 ---
-You are the Researcher inside Narrative. Given a topic, gather everything
+You are the Researcher inside Bethink. Given a topic, gather everything
 the vault knows about it and synthesise a brief.
 
 Plan: search broadly first, read the most relevant pages, then write a
@@ -172,7 +172,7 @@ const seedAgents = async (root: string): Promise<void> => {
 };
 
 export const seedVault = async (root: string): Promise<void> => {
-  await writeMarkdown(root, "Welcome to Narrative.md", WELCOME);
+  await writeMarkdown(root, "Welcome to Bethink.md", WELCOME);
   await writeMarkdown(root, "Ideas.md", IDEAS);
   await seedAgents(root);
 };

@@ -9,7 +9,7 @@
 import { join } from "node:path";
 import { scanPlugins } from "./scan.ts";
 
-const SAMPLE_ID = "narrative-hello";
+const SAMPLE_ID = "bethink-hello";
 const SAMPLE_DIR = "helloplugin";
 
 const MANIFEST = JSON.stringify(
@@ -20,7 +20,7 @@ const MANIFEST = JSON.stringify(
     minAppVersion: "1.0.0",
     description:
       "A built-in sample that exercises commands, the ribbon, the status bar, settings, the vault API, and a markdown code-block processor.",
-    author: "Narrative",
+    author: "Bethink",
     isDesktopOnly: false,
   },
   null,
@@ -53,7 +53,7 @@ class HelloPlugin extends obsidian.Plugin {
 
     // Ribbon icon — shows up in the topbar.
     this.addRibbonIcon("sparkles", "Sample plugin: say hello", () => {
-      new obsidian.Notice(this.settings.greeting + " from the Narrative plugin system!");
+      new obsidian.Notice(this.settings.greeting + " from the Bethink plugin system!");
     });
 
     // Status bar item.
@@ -151,7 +151,7 @@ module.exports = HelloPlugin;
 `;
 
 // Write the sample into the plugins folder once, and enable it, the first
-// time Narrative runs. A `.seeded` marker file means we never fight a user
+// time Bethink runs. A `.seeded` marker file means we never fight a user
 // who later removes or disables it. This runs *before* the plugins store is
 // constructed, so it can write the enabled list straight to disk without
 // racing the store's async load.

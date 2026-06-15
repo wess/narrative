@@ -1,11 +1,11 @@
 # Connecting to Stohr
 
 [Stohr](https://github.com/wess/stohr) is **self-hostable cloud storage with a
-federation layer**. Narrative can connect to a Stohr instance and act as its
+federation layer**. Bethink can connect to a Stohr instance and act as its
 companion editor — your Stohr files appear right in the sidebar alongside your
 local pages.
 
-This is **optional**. A Narrative vault is fully functional as a plain local
+This is **optional**. A Bethink vault is fully functional as a plain local
 folder, and the simplest way to sync is still to keep that folder in git or any
 file-sync service (see **[Vaults](vault.md)**). Connect to Stohr when you want
 hosted, account-based storage you control.
@@ -17,13 +17,13 @@ happens there.
 
 ## The server URL
 
-Narrative defaults to `https://stohr.io/api`. If you run your own Stohr
+Bethink defaults to `https://stohr.io/api`. If you run your own Stohr
 instance, enter its API URL instead — trailing slashes are trimmed
 automatically. One Stohr connection is held per app.
 
 ## How authentication works
 
-Stohr authenticates every request with a bearer token. Narrative obtains that
+Stohr authenticates every request with a bearer token. Bethink obtains that
 token in one of two ways, and once it has one:
 
 - the **token is stored in your operating system's keychain** — never in a file
@@ -38,11 +38,11 @@ You choose the sign-in method on the Stohr tab.
 
 The default. Enter your Stohr **identity** (email or username) and **password**:
 
-1. Narrative calls `POST /login` on your Stohr server.
+1. Bethink calls `POST /login` on your Stohr server.
 2. If the account has **two-factor authentication**, the server returns an MFA
-   challenge instead of a token. Narrative shows a code field — enter the code
+   challenge instead of a token. Bethink shows a code field — enter the code
    from your authenticator and it finishes sign-in via `POST /login/mfa`.
-3. On success, Narrative verifies the token and stores the connection.
+3. On success, Bethink verifies the token and stores the connection.
 
 Your password is used only for that one sign-in call; it is never stored.
 
@@ -53,13 +53,13 @@ credential — paste a **personal access token** (a `stohr_pat_…` string)
 instead.
 
 Create one in **Stohr → Settings → Apps**, then paste it into the token field
-in Narrative. This is the recommended method for long-lived connections,
+in Bethink. This is the recommended method for long-lived connections,
 because you can revoke the token from Stohr at any time without changing your
 password.
 
 ## Verifying a connection
 
-Whenever Narrative connects — or re-checks an existing connection on launch —
+Whenever Bethink connects — or re-checks an existing connection on launch —
 it calls `/me` to confirm the token still works and fetch your account
 details, and `/me/usage` for storage usage. Usage is a nice-to-have: if it
 isn't available, the connection still counts as connected.
@@ -73,13 +73,13 @@ Once connected, the Stohr tab shows:
 - your **storage usage** — used space against your quota (a quota of `0` means
   unlimited).
 
-If a stored connection fails to verify later, Narrative reports the reason but
+If a stored connection fails to verify later, Bethink reports the reason but
 **keeps the token** — a `401` means you should re-authenticate, while a network
 blip is transient and will recover on its own.
 
 ## Vault sync
 
-Once connected, Narrative keeps the **whole vault folder** in two-way sync with
+Once connected, Bethink keeps the **whole vault folder** in two-way sync with
 your Stohr account — every Markdown page and every attachment.
 
 ### When it syncs
@@ -105,7 +105,7 @@ sidebar like any other page.
 
 ### Conflicts
 
-If the **same file changed on both sides** since the last sync, Narrative keeps
+If the **same file changed on both sides** since the last sync, Bethink keeps
 your local copy and saves the Stohr copy next to it as
 `<name> (stohr conflict <date>).md` — nothing is overwritten or lost. The Stohr
 tab lists any conflicts after a manual sync so you can merge them by hand.
@@ -126,9 +126,9 @@ baseline — stays local and is never uploaded.
 the cached account. Your local vault and its files are untouched — disconnecting
 only ends the link to the Stohr server.
 
-## Reference: the endpoints Narrative uses
+## Reference: the endpoints Bethink uses
 
-Narrative talks to a small, fixed set of Stohr API endpoints. All requests are
+Bethink talks to a small, fixed set of Stohr API endpoints. All requests are
 made from the **host process**, so they aren't subject to the webview's CORS
 rules.
 

@@ -1,9 +1,9 @@
 # Tutorial 6 — Writing your first plugin
 
-Narrative's plugin API is **Obsidian-compatible**, so writing a plugin will
+Bethink's plugin API is **Obsidian-compatible**, so writing a plugin will
 feel familiar if you've ever touched the Obsidian ecosystem — and the skills
 transfer in both directions. In this final tutorial you'll build a working
-plugin from scratch and load it into Narrative.
+plugin from scratch and load it into Bethink.
 
 For the conceptual overview, see the **[Plugins guide](../plugins.md)**.
 
@@ -19,7 +19,7 @@ A small plugin called **Word Count** that:
 ## Step 1 — Find the plugins folder
 
 Open **Settings → Plugins** (`⌘,`) and click **Open plugins folder**. Your file
-manager opens Narrative's plugins directory. Plugins are **app-global** — they
+manager opens Bethink's plugins directory. Plugins are **app-global** — they
 live here, not inside any one vault.
 
 Inside it, create a new folder for your plugin:
@@ -44,12 +44,12 @@ A plugin needs a `manifest.json`. Create `wordcount/manifest.json`:
 }
 ```
 
-The `id` must be unique and is how Narrative tracks the plugin.
+The `id` must be unique and is how Bethink tracks the plugin.
 
 ## Step 3 — Write the plugin code
 
 The plugin itself is `main.js` — a **CommonJS module** that exports a plugin
-class. (Plugins are the one place Narrative uses classes — the Obsidian API
+class. (Plugins are the one place Bethink uses classes — the Obsidian API
 requires it.) Create `wordcount/main.js`:
 
 ```js
@@ -182,7 +182,7 @@ wordcount/
 ## Step 5 — Enable the plugin
 
 Back in **Settings → Plugins**, your *Word Count* plugin now appears in the
-list (Narrative rescans the folder). **Enable** it.
+list (Bethink rescans the folder). **Enable** it.
 
 It loads immediately — no restart. If anything is wrong, the error is shown
 right there in Settings instead of crashing the app.
@@ -237,6 +237,6 @@ side with the [Plugins guide](../plugins.md).
 
 ## Done!
 
-You've gone from installing Narrative to writing a working plugin. From here,
+You've gone from installing Bethink to writing a working plugin. From here,
 the **[documentation guides](../readme.md)** cover everything in reference
 depth. Happy writing.

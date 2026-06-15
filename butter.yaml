@@ -1,5 +1,5 @@
 window:
-  title: "Narrative"
+  title: "Bethink"
   width: 1340
   height: 860
   minWidth: 760
@@ -11,7 +11,7 @@ build:
   host: src/host/index.ts
 
 bundle:
-  identifier: io.wess.narrative
+  identifier: io.wess.bethink
   category: public.app-category.productivity
   minimumSystemVersion: "11.0"
 
@@ -30,4 +30,4 @@ bundle:
     # crashes the first time the JIT compiles a function.
     allowJit: true
     dmg:
-      volumeName: "Narrative"
+      volumeName: "Bethink"

@@ -4,7 +4,7 @@
 // the in-memory index, then tells the webview to refresh.
 //
 // Two things keep it honest:
-//  - a self-write guard (`isSelfWrite`) so Narrative's own saves don't echo;
+//  - a self-write guard (`isSelfWrite`) so Bethink's own saves don't echo;
 //  - debounced batches, so a burst of events (a git checkout, a folder move)
 //    is reconciled in one pass — which is also where renames are detected:
 //    a vanished file whose content reappears under a new path is treated as
@@ -61,7 +61,7 @@ export const reconcilePaths = async (vault: OpenVault, rels: string[]): Promise<
   if (rels.length === 0) return;
 
   // Snapshot what each touched path looks like on disk *now*, then drop the
-  // ones that are Narrative's own writes echoing back (matched by mtime, so
+  // ones that are Bethink's own writes echoing back (matched by mtime, so
   // an external edit moments later is still seen).
   const raw: DiskState[] = [];
   for (const rel of rels) {
@@ -202,7 +202,7 @@ export const reconcilePaths = async (vault: OpenVault, rels: string[]): Promise<
     if (structural) emit(ch.treeChanged, undefined);
     for (const page of savedPages) emit(ch.pageSaved, page);
   } catch (e) {
-    console.error("[Narrative] vault watcher could not notify the webview:", e);
+    console.error("[Bethink] vault watcher could not notify the webview:", e);
   }
 };
 
@@ -236,9 +236,9 @@ export const startWatcher = (vault: OpenVault): { close: () => void } => {
     // `recursive` is supported on macOS and Windows; on Linux only the root
     // dir is watched, so deep external edits there need a manual rescan.
     watcher = watch(vault.root, { recursive: true }, onEvent);
-    watcher.on("error", (e) => console.error("[Narrative] vault watcher error:", e));
+    watcher.on("error", (e) => console.error("[Bethink] vault watcher error:", e));
   } catch (e) {
-    console.error("[Narrative] vault watcher unavailable:", (e as Error).message);
+    console.error("[Bethink] vault watcher unavailable:", (e as Error).message);
   }
 
   return {

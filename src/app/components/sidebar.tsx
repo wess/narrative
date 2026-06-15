@@ -3,21 +3,36 @@ import {
   Bot,
   Calendar,
   ChevronDown,
+  ChevronRight,
   FileText,
   FolderOpen,
   FolderPlus,
+  GitCompare,
   Hash,
+  History,
   Info,
+  Link,
+  ListChecks,
   PanelLeftClose,
   Pencil,
   Plus,
   Search,
   Settings,
+  Shapes,
+  ShieldCheck,
   Sparkles,
+  TableProperties,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
-import type { AgentDef, ChannelDef, PageMeta, ProjectDef } from "../../shared/types.ts";
+import type {
+  AgentDef,
+  ChannelDef,
+  PageMeta,
+  ProjectDef,
+  ProjectFileNode,
+} from "../../shared/types.ts";
 import { openMenu } from "../lib/contextmenu.ts";
 import { buildTagTree } from "../lib/tags.ts";
 import { actions } from "../state/actions.ts";
@@ -130,7 +145,7 @@ const ChannelItem = ({ channel }: { channel: ChannelDef }) => {
         type="button"
         className="side-agent-main"
         title={channel.description || channel.name}
-        onClick={() => actions.openChannelProfile(channel.slug)}
+        onClick={() => void actions.openChannelProfile(channel.slug)}
       >
         <span className="side-agent-icon">{channel.icon || "\u{1F4AC}"}</span>
         <span className="side-agent-text">
@@ -142,7 +157,7 @@ const ChannelItem = ({ channel }: { channel: ChannelDef }) => {
         type="button"
         className="side-agent-edit"
         title="Channel profile"
-        onClick={() => actions.openChannelProfile(channel.slug)}
+        onClick={() => void actions.openChannelProfile(channel.slug)}
       >
         <Info size={11} />
       </button>
@@ -150,23 +165,65 @@ const ChannelItem = ({ channel }: { channel: ChannelDef }) => {
   );
 };
 
+const ProjectFileTree = ({
+  projectSlug,
+  nodes,
+  depth = 0,
+}: {
+  projectSlug: string;
+  nodes: readonly ProjectFileNode[];
+  depth?: number;
+}) => (
+  <div className="side-project-tree">
+    {nodes.map((node) => (
+      <div key={`${node.kind}-${node.path}`} className="side-project-node">
+        {node.kind === "folder" ? (
+          <div className="side-project-file" style={{ paddingLeft: 8 + depth * 12 }}>
+            <ChevronRight size={11} />
+            <span>{node.name}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="side-project-file side-project-filebutton"
+            style={{ paddingLeft: 8 + depth * 12 }}
+            title={node.path}
+            onClick={() => void actions.openProjectInspector(projectSlug, node.path)}
+          >
+            <FileText size={11} />
+            <span>{node.name}</span>
+          </button>
+        )}
+        {node.kind === "folder" && node.children.length > 0 ? (
+          <ProjectFileTree projectSlug={projectSlug} nodes={node.children} depth={depth + 1} />
+        ) : null}
+      </div>
+    ))}
+  </div>
+);
+
 const ProjectItem = ({ project }: { project: ProjectDef }) => {
   const { channels } = useApp();
+  const [open, setOpen] = useState(false);
+  const [tree, setTree] = useState<ProjectFileNode | null>(null);
   const linked = project.channelSlug
     ? (channels.find((channel) => channel.slug === project.channelSlug) ?? null)
     : null;
+  const toggleOpen = async () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !tree) setTree(await actions.loadProjectTree(project.slug));
+  };
   return (
-    <div className="side-agent">
+    <div className="side-project">
       <button
         type="button"
         className="side-agent-main"
         title={project.path}
-        onClick={() => {
-          if (linked) actions.openChannelProfile(linked.slug);
-        }}
+        onClick={() => void toggleOpen()}
       >
         <span className="side-agent-icon">
-          <FolderOpen size={13} />
+          {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         </span>
         <span className="side-agent-text">
           <span>{project.name}</span>
@@ -176,10 +233,29 @@ const ProjectItem = ({ project }: { project: ProjectDef }) => {
       <button
         type="button"
         className="side-agent-edit"
-        title="Suggest channel"
-        onClick={() => void actions.suggestChannelForProject(project.slug)}
+        title="Changes and runs"
+        onClick={() => void actions.openProjectInspector(project.slug)}
       >
-        <Sparkles size={11} />
+        <GitCompare size={11} />
+      </button>
+      <button
+        type="button"
+        className="side-agent-edit"
+        title="Kanban board"
+        onClick={() => void actions.openKanban({ projectSlug: project.slug })}
+      >
+        <ListChecks size={11} />
+      </button>
+      <button
+        type="button"
+        className="side-agent-edit"
+        title={linked ? "Channel profile" : "Suggest channel"}
+        onClick={() => {
+          if (linked) void actions.openChannelProfile(linked.slug);
+          else void actions.suggestChannelForProject(project.slug);
+        }}
+      >
+        {linked ? <Info size={11} /> : <Sparkles size={11} />}
       </button>
       <button
         type="button"
@@ -191,6 +267,19 @@ const ProjectItem = ({ project }: { project: ProjectDef }) => {
       >
         <Trash2 size={11} />
       </button>
+      {open ? (
+        <div className="side-project-files">
+          {tree ? (
+            tree.children.length > 0 ? (
+              <ProjectFileTree projectSlug={project.slug} nodes={tree.children} />
+            ) : (
+              <p className="side-empty">No visible files</p>
+            )
+          ) : (
+            <p className="side-empty">Loading…</p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -306,6 +395,37 @@ export const Sidebar = () => {
             <TagTree nodes={tagTree} onPick={(t) => void actions.openTag(t)} />
           </Section>
         ) : null}
+
+        <Section label="Organize" defaultOpen={false}>
+          <button
+            type="button"
+            className="side-agent-empty"
+            onClick={() => void actions.openBases()}
+          >
+            <TableProperties size={13} />
+            Open table
+          </button>
+          <button
+            type="button"
+            className="side-agent-empty"
+            onClick={() => void actions.openCanvas()}
+          >
+            <Shapes size={13} />
+            Open canvas
+          </button>
+          <button type="button" className="side-agent-empty" onClick={() => actions.openCapture()}>
+            <Link size={13} />
+            Capture web page
+          </button>
+          <button
+            type="button"
+            className="side-agent-empty"
+            onClick={() => void actions.openCaptureHistory()}
+          >
+            <History size={13} />
+            Capture history
+          </button>
+        </Section>
       </div>
 
       <footer className="sidebar-foot">
@@ -325,6 +445,38 @@ export const Sidebar = () => {
           }
         >
           <div className="side-agents">
+            <button
+              type="button"
+              className="side-agent-empty"
+              onClick={() => void actions.openWorkflows()}
+            >
+              <Shapes size={13} />
+              Workflows
+            </button>
+            <button
+              type="button"
+              className="side-agent-empty"
+              onClick={() => actions.openAgentGuide()}
+            >
+              <Info size={13} />
+              Agent concepts
+            </button>
+            <button
+              type="button"
+              className="side-agent-empty"
+              onClick={() => void actions.openReviewQueue()}
+            >
+              <ShieldCheck size={13} />
+              Review changes
+            </button>
+            <button
+              type="button"
+              className="side-agent-empty"
+              onClick={() => void actions.openKanban()}
+            >
+              <ListChecks size={13} />
+              Kanban inbox
+            </button>
             {projects.length > 0 ? (
               projects.map((project) => <ProjectItem key={project.slug} project={project} />)
             ) : (
@@ -355,6 +507,30 @@ export const Sidebar = () => {
           }
         >
           <div className="side-agents">
+            <button
+              type="button"
+              className="side-agent-empty"
+              onClick={() => void actions.openRunTimeline()}
+            >
+              <History size={13} />
+              View run history
+            </button>
+            <button
+              type="button"
+              className="side-agent-empty"
+              onClick={() => void actions.openMemoryManager()}
+            >
+              <ListChecks size={13} />
+              Manage memory
+            </button>
+            <button
+              type="button"
+              className="side-agent-empty"
+              onClick={() => void actions.importAgents()}
+            >
+              <Upload size={13} />
+              Import agents or channels
+            </button>
             {agents.length > 0 ? (
               agents.map((agent) => <AgentItem key={agent.slug} agent={agent} />)
             ) : (
@@ -385,6 +561,14 @@ export const Sidebar = () => {
           }
         >
           <div className="side-agents">
+            <button
+              type="button"
+              className="side-agent-empty"
+              onClick={() => void actions.importAgents()}
+            >
+              <Upload size={13} />
+              Import channel bundle
+            </button>
             {channels.length > 0 ? (
               channels.map((channel) => <ChannelItem key={channel.slug} channel={channel} />)
             ) : (

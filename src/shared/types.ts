@@ -56,6 +56,17 @@ export type VaultEntry = {
   readonly lastOpened: string; // ISO timestamp
 };
 
+export type VaultBackupResult = {
+  readonly path: string | null;
+  readonly files: number;
+};
+
+export type VaultRestoreResult = {
+  readonly root: string | null;
+  readonly files: number;
+  readonly error: string | null;
+};
+
 export type Backlink = {
   readonly id: number;
   readonly title: string;
@@ -68,10 +79,24 @@ export type Backlinks = {
   readonly unlinked: readonly Backlink[];
 };
 
+export type SearchHitKind =
+  | "page"
+  | "agent"
+  | "channel"
+  | "project"
+  | "memory"
+  | "capture"
+  | "run"
+  | "transcript"
+  | "proposal";
+
 export type SearchHit = {
   readonly id: number;
+  readonly kind: SearchHitKind;
+  readonly target: string;
   readonly title: string;
   readonly icon: string;
+  readonly subtitle: string;
   readonly snippet: string;
 };
 
@@ -116,12 +141,34 @@ export type AiConfig = {
   readonly baseURL: string; // the provider's server endpoint — editable for every provider
   readonly hasKey: boolean; // whether the current provider has a usable key in the Keychain
   readonly semanticIndex: boolean; // keep an embedding index for semantic RAG
+  readonly projectWrite: boolean; // allow agents to write registered project folders
 };
 
 export type EmbedStatus = {
   readonly indexed: number;
   readonly total: number;
   readonly supported: boolean; // current provider exposes an embeddings API
+};
+
+export type AiHealth = {
+  readonly provider: AiProvider;
+  readonly label: string;
+  readonly protocol: string;
+  readonly model: string;
+  readonly baseURL: string;
+  readonly keyRequired: boolean;
+  readonly keyPresent: boolean;
+  readonly configured: boolean;
+  readonly chat: {
+    readonly checked: boolean;
+    readonly ok: boolean;
+    readonly latencyMs: number | null;
+    readonly message: string;
+  };
+  readonly embeddings: {
+    readonly supported: boolean;
+    readonly model: string | null;
+  };
 };
 
 export type ChatMessage = {
@@ -137,10 +184,47 @@ export type AiResult = {
   readonly content: string;
   readonly error?: string;
   readonly toolCalls?: readonly ToolCall[];
+  readonly stopReason?: AgentStopReason;
+  readonly iterations?: number;
+};
+
+export type AgentStopReason = "complete" | "maxiterations" | "cancelled" | "error";
+export type AgentRunStatus = "ok" | "error" | "cancelled" | "maxiterations";
+
+export type AgentRun = {
+  readonly id: number;
+  readonly requestId: string;
+  readonly agentSlug: string | null;
+  readonly channelSlug: string | null;
+  readonly userPrompt: string;
+  readonly status: AgentRunStatus;
+  readonly content: string;
+  readonly error: string;
+  readonly toolCalls: readonly ToolCall[];
+  readonly stopReason: AgentStopReason;
+  readonly iterations: number;
+  readonly durationMs: number;
+  readonly createdAt: string;
+};
+
+export type MemoryScope = "global" | "channel";
+
+export type MemoryRecord = {
+  readonly id: number;
+  readonly scope: MemoryScope;
+  readonly channelSlug: string | null;
+  readonly agentSlug: string | null;
+  readonly kind: string;
+  readonly content: string;
+  readonly source: string;
+  readonly weight: number;
+  readonly pinned: boolean;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 };
 
 // --- agent IDE ------------------------------------------------------------
-// Narrative is an Agent IDE: agents and commands live in the vault as plain
+// Bethink is an Agent IDE: agents and commands live in the vault as plain
 // Markdown files with frontmatter, the host parses them, and the chat runs
 // a streaming loop that lets the model call vault tools via fenced blocks.
 
@@ -153,7 +237,7 @@ export type AgentToolDef = {
   readonly usage: string; // JSON shape hint shown in the system prompt
 };
 
-// A native Narrative agent — `.narrative/agents/<slug>.md` with frontmatter.
+// A native Bethink agent — `.narrative/agents/<slug>.md` with frontmatter.
 export type AgentDef = {
   readonly slug: string; // file name without extension
   readonly path: string; // vault-relative path to the source file
@@ -164,6 +248,12 @@ export type AgentDef = {
   readonly provider: AiProvider | null; // overrides app default if set
   readonly tools: readonly string[]; // tool-name allowlist
   readonly systemPrompt: string; // body, after frontmatter
+};
+
+export type AgentImportResult = {
+  readonly importedAgents: number;
+  readonly importedChannels: number;
+  readonly skipped: number;
 };
 
 // A reusable command — `.narrative/commands/<slug>.md`. Runs as a one-shot
@@ -200,12 +290,286 @@ export type ChannelDef = {
   readonly brief: string; // body, after frontmatter
 };
 
+export type ChannelMessage = {
+  readonly id: number;
+  readonly channelSlug: string;
+  readonly agentSlug: string | null;
+  readonly role: "user" | "assistant";
+  readonly content: string;
+  readonly toolCalls: readonly ToolCall[];
+  readonly createdAt: string;
+};
+
 export type ProjectDef = {
   readonly slug: string;
   readonly name: string;
   readonly path: string;
   readonly description: string;
   readonly channelSlug: string | null;
+  readonly allowRead: boolean;
+  readonly allowWrite: boolean;
+  readonly allowRun: boolean;
+  readonly approvedCommands: readonly string[];
+};
+
+export type ProjectFileNode = {
+  readonly name: string;
+  readonly path: string;
+  readonly kind: "file" | "folder";
+  readonly children: readonly ProjectFileNode[];
+};
+
+export type ProjectRun = {
+  readonly id: number;
+  readonly projectSlug: string;
+  readonly command: string;
+  readonly cwd: string;
+  readonly exitCode: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly durationMs: number;
+  readonly createdAt: string;
+};
+
+export type ProjectSnapshot = {
+  readonly id: number;
+  readonly projectSlug: string;
+  readonly path: string;
+  readonly content: string;
+  readonly reason: string;
+  readonly createdAt: string;
+};
+
+export type ProjectChangedFile = {
+  readonly path: string;
+  readonly latestSnapshotId: number;
+  readonly changedAt: string;
+};
+
+export type ProjectDiff = {
+  readonly path: string;
+  readonly snapshotId: number;
+  readonly diff: string;
+};
+
+export type ProjectFileContent = {
+  readonly path: string;
+  readonly content: string;
+};
+
+export type ProjectScript = {
+  readonly name: string;
+  readonly command: string;
+  readonly safe: boolean;
+};
+
+export type ProjectAnalysis = {
+  readonly projectSlug: string;
+  readonly projectName: string;
+  readonly stack: readonly string[];
+  readonly packageManager: string | null;
+  readonly scripts: readonly ProjectScript[];
+  readonly recommendedCommands: readonly string[];
+  readonly approvedCommands: readonly string[];
+  readonly importantFiles: readonly string[];
+  readonly warnings: readonly string[];
+};
+
+export type ProjectWriteProposalStatus = "pending" | "approved" | "rejected";
+
+export type ProjectWriteProposal = {
+  readonly id: number;
+  readonly projectSlug: string;
+  readonly path: string;
+  readonly content: string;
+  readonly diff: string | null;
+  readonly reason: string;
+  readonly status: ProjectWriteProposalStatus;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type KanbanStatus = "backlog" | "ready" | "doing" | "review" | "done";
+export type KanbanPriority = "low" | "normal" | "high";
+
+export type KanbanCard = {
+  readonly id: number;
+  readonly projectSlug: string | null;
+  readonly channelSlug: string | null;
+  readonly title: string;
+  readonly description: string;
+  readonly status: KanbanStatus;
+  readonly priority: KanbanPriority;
+  readonly agentSlug: string | null;
+  readonly pageId: number | null;
+  readonly sortKey: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type KanbanBoard = {
+  readonly projectSlug: string | null;
+  readonly channelSlug: string | null;
+  readonly columns: readonly KanbanStatus[];
+  readonly cards: readonly KanbanCard[];
+};
+
+export type WorkflowStepKind =
+  | "agent"
+  | "search"
+  | "createpage"
+  | "proposefile"
+  | "runcommand"
+  | "approval"
+  | "webhook";
+
+export type WorkflowTriggerKind = "manual" | "schedule" | "webhook" | "integration";
+export type WorkflowRunStatus = "queued" | "running" | "waiting" | "ok" | "error" | "cancelled";
+
+export type WorkflowConfig = Readonly<Record<string, unknown>>;
+
+export type WorkflowStep = {
+  readonly id: string;
+  readonly kind: WorkflowStepKind;
+  readonly name: string;
+  readonly config: WorkflowConfig;
+  readonly x: number;
+  readonly y: number;
+};
+
+export type WorkflowTrigger = {
+  readonly id: string;
+  readonly kind: WorkflowTriggerKind;
+  readonly name: string;
+  readonly config: WorkflowConfig;
+  readonly enabled: boolean;
+};
+
+export type Workflow = {
+  readonly slug: string;
+  readonly name: string;
+  readonly description: string;
+  readonly projectSlug: string | null;
+  readonly channelSlug: string | null;
+  readonly steps: readonly WorkflowStep[];
+  readonly triggers: readonly WorkflowTrigger[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type WorkflowStepResult = {
+  readonly stepId: string;
+  readonly status: WorkflowRunStatus;
+  readonly output: string;
+  readonly error: string;
+  readonly durationMs: number;
+};
+
+export type WorkflowRun = {
+  readonly id: number;
+  readonly workflowSlug: string;
+  readonly status: WorkflowRunStatus;
+  readonly triggerKind: WorkflowTriggerKind;
+  readonly input: string;
+  readonly output: string;
+  readonly error: string;
+  readonly stepResults: readonly WorkflowStepResult[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type HarnessScenario = {
+  readonly slug: string;
+  readonly name: string;
+  readonly agentSlug: string | null;
+  readonly channelSlug: string | null;
+  readonly prompt: string;
+  readonly expected: string;
+  readonly tools: readonly string[];
+  readonly maxIterations: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type HarnessRunStatus = "pass" | "fail" | "error";
+
+export type HarnessRun = {
+  readonly id: number;
+  readonly scenarioSlug: string;
+  readonly agentRunId: number | null;
+  readonly status: HarnessRunStatus;
+  readonly score: number;
+  readonly notes: string;
+  readonly stopReason: AgentStopReason;
+  readonly iterations: number;
+  readonly createdAt: string;
+};
+
+export type PropertySubjectType = "page" | "project" | "agent" | "channel" | "workflow";
+
+export type PropertyValue = {
+  readonly subjectType: PropertySubjectType;
+  readonly subjectId: string;
+  readonly subjectName: string;
+  readonly key: string;
+  readonly value: string;
+  readonly source: string;
+  readonly updatedAt: string;
+};
+
+export type BaseRow = {
+  readonly subjectType: PropertySubjectType;
+  readonly subjectId: string;
+  readonly subjectName: string;
+  readonly values: Readonly<Record<string, string>>;
+  readonly updatedAt: string;
+};
+
+export type BaseView = {
+  readonly columns: readonly string[];
+  readonly rows: readonly BaseRow[];
+  readonly updatedAt: string;
+};
+
+export type CanvasNode = {
+  readonly id: string;
+  readonly subjectType: PropertySubjectType;
+  readonly subjectId: string;
+  readonly title: string;
+  readonly subtitle: string;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+};
+
+export type CanvasEdge = {
+  readonly id: string;
+  readonly from: string;
+  readonly to: string;
+  readonly label: string;
+};
+
+export type CanvasView = {
+  readonly nodes: readonly CanvasNode[];
+  readonly edges: readonly CanvasEdge[];
+  readonly availableNodes: readonly CanvasNode[];
+  readonly updatedAt: string;
+};
+
+export type WebCaptureInput = {
+  readonly url: string;
+  readonly title?: string;
+  readonly notes?: string;
+};
+
+export type WebCapture = {
+  readonly id: number;
+  readonly url: string;
+  readonly title: string;
+  readonly pageId: number;
+  readonly pageTitle: string;
+  readonly createdAt: string;
 };
 
 export type ToolCallStatus = "pending" | "ok" | "error";
@@ -222,7 +586,7 @@ export type ToolCall = {
 };
 
 // --- Stohr (cloud storage) ------------------------------------------------
-// Narrative connects to a Stohr instance — self-hostable cloud storage with
+// Bethink connects to a Stohr instance — self-hostable cloud storage with
 // a federation layer. Auth is a bearer token: either a pasted `stohr_pat_…`
 // personal access token, or the JWT from an email + password sign-in. The
 // token lives in the OS Keychain; the server URL and a cached account
@@ -272,7 +636,7 @@ export type StohrSyncResult = {
 };
 
 // --- plugins --------------------------------------------------------------
-// Narrative loads community plugins: a folder containing a
+// Bethink loads community plugins: a folder containing a
 // `manifest.json`, a CommonJS `main.js`, and optional `styles.css` /
 // `data.json`. The host owns the filesystem; the webview runs the code.
 

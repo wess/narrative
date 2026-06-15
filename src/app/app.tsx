@@ -4,22 +4,33 @@ import { Toaster } from "@basket/ui/toast";
 import { useEffect, useMemo } from "react";
 import * as ch from "../shared/channels.ts";
 import { AgentEditor } from "./components/agenteditor.tsx";
+import { AgentGuide } from "./components/agentguide.tsx";
 import { AgentProfile } from "./components/agentprofile.tsx";
 import { AgentWizard } from "./components/agentwizard.tsx";
 import { AiChat } from "./components/aichat.tsx";
 import { Backlinks } from "./components/backlinks.tsx";
+import { BasesView } from "./components/basesview.tsx";
+import { CanvasView } from "./components/canvasview.tsx";
+import { CaptureHistory } from "./components/capturehistory.tsx";
+import { CaptureModal } from "./components/capturemodal.tsx";
 import { ChannelProfile } from "./components/channelprofile.tsx";
 import { ChannelWizard } from "./components/channelwizard.tsx";
 import { CommandPalette } from "./components/commandpalette.tsx";
 import { ContextMenuHost } from "./components/contextmenu.tsx";
 import { Editor } from "./components/editor.tsx";
 import { FindBar } from "./components/findbar.tsx";
+import { FirstSetup } from "./components/firstsetup.tsx";
 import { GraphView } from "./components/graphview.tsx";
 import { HoverPreview } from "./components/hoverpreview.tsx";
+import { Kanban } from "./components/kanban.tsx";
+import { MemoryManager } from "./components/memorymanager.tsx";
 import { Outgoing } from "./components/outgoing.tsx";
 import { Outline } from "./components/outline.tsx";
 import { PluginPanel, PluginStatusBar } from "./components/plugins.tsx";
+import { ProjectInspector } from "./components/projectinspector.tsx";
 import { ReadingPane } from "./components/readingpane.tsx";
+import { ReviewQueue } from "./components/reviewqueue.tsx";
+import { RunTimeline } from "./components/runtimeline.tsx";
 import { SearchView } from "./components/searchview.tsx";
 import { Settings } from "./components/settings.tsx";
 import { Sidebar } from "./components/sidebar.tsx";
@@ -27,6 +38,7 @@ import { TabBar } from "./components/tabbar.tsx";
 import { TagsView } from "./components/tagsview.tsx";
 import { Topbar } from "./components/topbar.tsx";
 import { VaultPicker } from "./components/vaultpicker.tsx";
+import { Workflows } from "./components/workflows.tsx";
 import { flattenTree } from "./lib/tree.ts";
 import { useRegistry } from "./plugins/registry.ts";
 import { pluginRuntime } from "./plugins/runtime.ts";
@@ -191,6 +203,36 @@ export const App = () => {
       },
       { id: "cmd-tags", label: "Browse tags", hint: "⌘⇧T", action: () => actions.setView("tags") },
       {
+        id: "cmd-bases",
+        label: "Open table",
+        keywords: ["properties", "metadata", "tables", "bases"],
+        action: () => void actions.openBases(),
+      },
+      {
+        id: "cmd-canvas",
+        label: "Open canvas",
+        keywords: ["map", "workspace", "agents", "projects"],
+        action: () => void actions.openCanvas(),
+      },
+      {
+        id: "cmd-kanban",
+        label: "Open Kanban board",
+        keywords: ["project", "cards", "tasks", "agents"],
+        action: () => void actions.openKanban(),
+      },
+      {
+        id: "cmd-workflows",
+        label: "Open workflows",
+        keywords: ["automation", "n8n", "canvas", "triggers"],
+        action: () => void actions.openWorkflows(),
+      },
+      {
+        id: "cmd-capture",
+        label: "Capture web page",
+        keywords: ["clip", "web", "url"],
+        action: () => actions.openCapture(),
+      },
+      {
         id: "cmd-random",
         label: "Open a random page",
         keywords: ["shuffle", "surprise"],
@@ -244,7 +286,7 @@ export const App = () => {
         icon: node.icon || undefined,
         action: () => void actions.openPage(node.id),
       }));
-    // Plugin-contributed commands land in the same palette as Narrative's own.
+    // Plugin-contributed commands land in the same palette as Bethink's own.
     const pluginCommands = registry.commands.map<PaletteCommand>((cmd) => ({
       id: `plugin-${cmd.id}`,
       label: cmd.name,
@@ -301,6 +343,8 @@ export const App = () => {
           {view === "graph" ? <GraphView /> : null}
           {view === "search" ? <SearchView /> : null}
           {view === "tags" ? <TagsView /> : null}
+          {view === "bases" ? <BasesView /> : null}
+          {view === "canvas" ? <CanvasView /> : null}
           <PluginPanel />
         </div>
         <PluginStatusBar />
@@ -317,10 +361,20 @@ export const App = () => {
       <Settings />
       <CommandPalette />
       <AgentEditor />
+      <AgentGuide />
       <AgentProfile />
       <AgentWizard />
       <ChannelProfile />
       <ChannelWizard />
+      <ProjectInspector />
+      <Kanban />
+      <Workflows />
+      <CaptureHistory />
+      <CaptureModal />
+      <FirstSetup />
+      <RunTimeline />
+      <MemoryManager />
+      <ReviewQueue />
       <ContextMenuHost />
       <HoverPreview />
       <Toaster />

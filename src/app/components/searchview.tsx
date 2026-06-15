@@ -6,6 +6,18 @@ import { useApp } from "../state/store.ts";
 import { buildPageMenu } from "./contextmenu.tsx";
 import { PageIcon } from "./icon.tsx";
 
+const labels: Record<string, string> = {
+  page: "Page",
+  agent: "Agent",
+  channel: "Channel",
+  project: "Project",
+  memory: "Memory",
+  capture: "Capture",
+  run: "Run",
+  transcript: "Transcript",
+  proposal: "Proposal",
+};
+
 // FTS snippets arrive with « » around matched terms — turn those into marks.
 const highlight = (snippet: string): ReactNode => {
   const parts = snippet.split(/(«[^»]*»)/g);
@@ -43,7 +55,7 @@ export const SearchView = () => {
       {search.query.trim() === "" ? (
         <div className="searchview-hint">
           <Search size={26} />
-          <p>Search titles and full page contents.</p>
+          <p>Search pages, agents, channels, projects, memories, captures, runs, and proposals.</p>
           <div className="searchview-ops">
             <code>tag:project</code>
             <code>title:notes</code>
@@ -53,7 +65,7 @@ export const SearchView = () => {
       ) : search.hits.length === 0 ? (
         <div className="searchview-hint">
           <p>
-            No pages match <strong>“{search.query}”</strong>.
+            No results match <strong>“{search.query}”</strong>.
           </p>
         </div>
       ) : (
@@ -64,10 +76,11 @@ export const SearchView = () => {
           {search.hits.map((hit) => (
             <button
               type="button"
-              key={hit.id}
+              key={`${hit.kind}:${hit.target}:${hit.id}`}
               className="search-hit"
-              onClick={() => void actions.openPage(hit.id)}
+              onClick={() => void actions.openSearchHit(hit)}
               onContextMenu={(e) => {
+                if (hit.kind !== "page") return;
                 e.preventDefault();
                 // Search only ever returns file nodes.
                 openMenu(e.clientX, e.clientY, buildPageMenu({ ...hit, kind: "file" }));
@@ -76,7 +89,9 @@ export const SearchView = () => {
               <span className="search-hit-title">
                 <PageIcon icon={hit.icon} size={15} />
                 {hit.title || "Untitled"}
+                <span className="search-hit-kind">{labels[hit.kind] ?? hit.kind}</span>
               </span>
+              {hit.subtitle ? <span className="search-hit-subtitle">{hit.subtitle}</span> : null}
               <span className="search-hit-snippet">{highlight(hit.snippet)}</span>
             </button>
           ))}

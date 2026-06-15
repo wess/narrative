@@ -15,7 +15,7 @@ export const VaultPicker = () => {
       <div className="vault-picker-card">
         <div className="vault-picker-brand">
           <span className="brand-mark">◆</span>
-          <h1>Narrative</h1>
+          <h1>Bethink</h1>
         </div>
         <p className="vault-picker-tag">
           Your vault is a folder of Markdown files — open one, or create a new one.

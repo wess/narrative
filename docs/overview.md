@@ -1,6 +1,6 @@
 # Overview
 
-Narrative is a native desktop **personal knowledge base** — an app for writing
+Bethink is a native desktop **personal knowledge base** — an app for writing
 notes, linking them together, and finding them again fast. It sits in the same
 family as Obsidian, Notion, and Logseq, with one firm principle: **your notes
 are plain Markdown files and they always belong to you.**
@@ -8,10 +8,10 @@ are plain Markdown files and they always belong to you.**
 ## What makes it different
 
 - **Files, not a database.** Your vault is an ordinary folder of `.md` files.
-  Narrative never stores your content anywhere else. Everything proprietary —
+  Bethink never stores your content anywhere else. Everything proprietary —
   the search index, the link graph — is derived data that can be thrown away
   and rebuilt.
-- **A real native app.** Narrative is not a website in a wrapper. It uses the
+- **A real native app.** Bethink is not a website in a wrapper. It uses the
   operating system's own webview, so the binary is small and the app starts
   instantly.
 - **A block editor over Markdown.** You write in a Notion-style block surface,
@@ -26,7 +26,7 @@ are plain Markdown files and they always belong to you.**
 
 ## How it's built
 
-Narrative is a [butter](../butter/) desktop app. Internally it runs as **two
+Bethink is a [butter](../butter/) desktop app. Internally it runs as **two
 processes** that never share memory:
 
 ```
@@ -52,7 +52,7 @@ processes** that never share memory:
   request, response, and event between the two sides is declared there, so the
   boundary is fully type-checked.
 
-This split is why Narrative feels fast: the UI never blocks on disk or network
+This split is why Bethink feels fast: the UI never blocks on disk or network
 work, and the host never blocks on rendering.
 
 ## The data model in one diagram
@@ -61,7 +61,7 @@ work, and the host never blocks on rendering.
    Your vault folder (the source of truth)
    ┌──────────────────────────────────┐
    │  Projects/                       │        scan + parse on open
-   │    Narrative.md   ── [[links]] ──┐│   ┌───────────────────────────┐
+   │    Bethink.md   ── [[links]] ──┐│   ┌───────────────────────────┐
    │    Roadmap.md                   ││──>│  In-memory index (SQLite)  │
    │  Daily/2026-05-20.md            ││   │  nodes · links · tags ·    │
    │  .narrative/ui.json  (sidecar)  ││   │  embeddings  — disposable  │

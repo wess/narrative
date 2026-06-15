@@ -1,23 +1,41 @@
 import { defineChannel, defineEvent } from "@basket/ipc";
 import type {
   AgentDef,
+  AgentImportResult,
+  AgentRun,
   AgentToolDef,
   AiConfig,
+  AiHealth,
   AiProvider,
   AiResult,
   AppStats,
   Backlink,
   Backlinks,
+  BaseView,
+  CanvasView,
   ChannelDef,
+  ChannelMessage,
   ChatMessage,
   CommandDef,
   EmbedStatus,
   GraphData,
   InstalledPlugin,
+  KanbanBoard,
+  KanbanCard,
+  KanbanPriority,
+  KanbanStatus,
+  MemoryRecord,
   Page,
   PageMeta,
   PluginBundle,
+  ProjectAnalysis,
+  ProjectChangedFile,
   ProjectDef,
+  ProjectDiff,
+  ProjectFileContent,
+  ProjectFileNode,
+  ProjectRun,
+  ProjectWriteProposal,
   RequestUrlInput,
   RequestUrlResult,
   SearchHit,
@@ -27,8 +45,17 @@ import type {
   TagCount,
   ToolCall,
   TreeNode,
+  VaultBackupResult,
   VaultEntry,
   VaultInfo,
+  VaultRestoreResult,
+  WebCapture,
+  WebCaptureInput,
+  Workflow,
+  WorkflowRun,
+  WorkflowStep,
+  WorkflowTrigger,
+  WorkflowTriggerKind,
 } from "./types.ts";
 
 // --- request / response channels ------------------------------------------
@@ -46,6 +73,8 @@ export const vaultOpen = defineChannel<{ path: string }, VaultInfo | null>("vaul
 export const vaultCreate = defineChannel<{ path: string }, VaultInfo | null>("vault:create");
 export const vaultPick = defineChannel<{ mode: "open" | "create" }, VaultInfo | null>("vault:pick");
 export const vaultForget = defineChannel<{ root: string }, VaultEntry[]>("vault:forget");
+export const vaultBackup = defineChannel<void, VaultBackupResult>("vault:backup");
+export const vaultRestore = defineChannel<void, VaultRestoreResult>("vault:restore");
 // The open vault changed — the webview reloads its whole tree/state.
 export const vaultChanged = defineEvent<VaultInfo | null>("evt:vault");
 
@@ -122,7 +151,7 @@ export const appStats = defineChannel<void, AppStats>("app:stats");
 
 export const getSettings = defineChannel<void, AiConfig>("settings:get");
 export const setSettings = defineChannel<
-  { provider?: AiProvider; model?: string; baseURL?: string },
+  { provider?: AiProvider; model?: string; baseURL?: string; projectWrite?: boolean },
   AiConfig
 >("settings:set");
 export const setAiKey = defineChannel<{ provider: AiProvider; apiKey: string }, AiConfig>(
@@ -131,6 +160,7 @@ export const setAiKey = defineChannel<{ provider: AiProvider; apiKey: string }, 
 export const clearAiKey = defineChannel<{ provider: AiProvider }, AiConfig>("settings:clearkey");
 export const setSemanticIndex = defineChannel<{ enabled: boolean }, AiConfig>("settings:semantic");
 export const testAi = defineChannel<void, { ok: boolean; message: string }>("ai:test");
+export const aiHealth = defineChannel<{ live?: boolean }, AiHealth>("ai:health");
 
 // RAG / embedding index.
 export const embedStatus = defineChannel<void, EmbedStatus>("ai:embedstatus");
@@ -177,15 +207,131 @@ export const aiToolCall = defineEvent<{ requestId: string; call: ToolCall }>("ev
 
 export const agentList = defineChannel<void, AgentDef[]>("agents:list");
 export const channelList = defineChannel<void, ChannelDef[]>("channels:list");
+export const channelMessages = defineChannel<{ slug: string; limit?: number }, ChannelMessage[]>(
+  "channels:messages",
+);
 export const commandList = defineChannel<void, CommandDef[]>("commands:list");
 export const toolList = defineChannel<void, AgentToolDef[]>("tools:list");
 export const projectList = defineChannel<void, ProjectDef[]>("projects:list");
+export const projectTree = defineChannel<{ slug: string }, ProjectFileNode | null>("projects:tree");
+export const projectRead = defineChannel<{ slug: string; path: string }, ProjectFileContent | null>(
+  "projects:read",
+);
+export const projectChanged = defineChannel<{ slug: string }, ProjectChangedFile[]>(
+  "projects:changed",
+);
+export const projectDiff = defineChannel<{ slug: string; path: string }, ProjectDiff | null>(
+  "projects:diff",
+);
+export const projectRuns = defineChannel<{ slug: string }, ProjectRun[]>("projects:runs");
+export const projectRunCancel = defineChannel<{ id: number; slug: string }, ProjectRun[]>(
+  "projects:runcancel",
+);
+export const projectAnalyze = defineChannel<{ slug: string }, ProjectAnalysis | null>(
+  "projects:analyze",
+);
 export const projectPick = defineChannel<void, ProjectDef | null>("projects:pick");
 export const projectDelete = defineChannel<{ slug: string }, void>("projects:delete");
+export const projectPermissions = defineChannel<
+  { slug: string; allowRead?: boolean; allowWrite?: boolean; allowRun?: boolean },
+  ProjectDef | null
+>("projects:permissions");
 export const projectSuggestChannel = defineChannel<
   { slug: string },
   { project: ProjectDef; channel: ChannelDef; agents: AgentDef[] } | null
 >("projects:suggestchannel");
+export const kanbanBoard = defineChannel<
+  { projectSlug?: string; channelSlug?: string },
+  KanbanBoard
+>("kanban:board");
+export const kanbanCreate = defineChannel<
+  {
+    projectSlug?: string | null;
+    channelSlug?: string | null;
+    title: string;
+    description?: string;
+    status?: KanbanStatus;
+    priority?: KanbanPriority;
+    agentSlug?: string | null;
+    pageId?: number | null;
+  },
+  KanbanCard | null
+>("kanban:create");
+export const kanbanUpdate = defineChannel<
+  {
+    id: number;
+    title?: string;
+    description?: string;
+    status?: KanbanStatus;
+    priority?: KanbanPriority;
+    agentSlug?: string | null;
+    pageId?: number | null;
+  },
+  KanbanCard | null
+>("kanban:update");
+export const kanbanMove = defineChannel<
+  { id: number; status: KanbanStatus; sortKey?: number },
+  KanbanCard | null
+>("kanban:move");
+export const kanbanDelete = defineChannel<{ id: number }, KanbanBoard>("kanban:delete");
+export const kanbanPrompt = defineChannel<
+  { id: number },
+  { prompt: string; agentSlug: string | null; channelSlug: string | null } | null
+>("kanban:prompt");
+export const workflowList = defineChannel<void, Workflow[]>("workflows:list");
+export const workflowCreate = defineChannel<
+  {
+    name: string;
+    description?: string;
+    projectSlug?: string | null;
+    channelSlug?: string | null;
+    steps?: WorkflowStep[];
+    triggers?: WorkflowTrigger[];
+  },
+  Workflow | null
+>("workflows:create");
+export const workflowUpdate = defineChannel<
+  {
+    slug: string;
+    name?: string;
+    description?: string;
+    projectSlug?: string | null;
+    channelSlug?: string | null;
+    steps?: WorkflowStep[];
+    triggers?: WorkflowTrigger[];
+  },
+  Workflow | null
+>("workflows:update");
+export const workflowDelete = defineChannel<{ slug: string }, Workflow[]>("workflows:delete");
+export const workflowRun = defineChannel<
+  { slug: string; triggerKind?: WorkflowTriggerKind; input?: string },
+  WorkflowRun | null
+>("workflows:run");
+export const workflowRuns = defineChannel<{ slug?: string; limit?: number }, WorkflowRun[]>(
+  "workflows:runs",
+);
+export const baseView = defineChannel<void, BaseView>("bases:view");
+export const canvasView = defineChannel<void, CanvasView>("canvas:view");
+export const canvasMove = defineChannel<{ id: string; x: number; y: number }, CanvasView>(
+  "canvas:move",
+);
+export const canvasAdd = defineChannel<{ id: string }, CanvasView>("canvas:add");
+export const canvasRemove = defineChannel<{ id: string }, CanvasView>("canvas:remove");
+export const webCapture = defineChannel<WebCaptureInput, WebCapture | null>("web:capture");
+export const webCaptures = defineChannel<{ limit?: number }, WebCapture[]>("web:captures");
+export const agentRuns = defineChannel<{ limit?: number }, AgentRun[]>("runs:list");
+export const memoryList = defineChannel<{ limit?: number }, MemoryRecord[]>("memory:list");
+export const memoryDelete = defineChannel<{ id: number }, MemoryRecord[]>("memory:delete");
+export const memoryPin = defineChannel<{ id: number; pinned: boolean }, MemoryRecord[]>(
+  "memory:pin",
+);
+export const projectProposals = defineChannel<void, ProjectWriteProposal[]>("projects:proposals");
+export const projectProposalApprove = defineChannel<{ id: number }, ProjectWriteProposal[]>(
+  "projects:proposalapprove",
+);
+export const projectProposalReject = defineChannel<{ id: number }, ProjectWriteProposal[]>(
+  "projects:proposalreject",
+);
 // Scaffolding helpers — create a starter file in `.narrative/agents/` or
 // `.narrative/commands/` and return the freshly-loaded definition.
 export const agentCreate = defineChannel<{ name: string }, AgentDef | null>("agents:create");
@@ -214,12 +360,19 @@ export const commandSave = defineChannel<{ slug: string; body: string }, Command
 export const agentDelete = defineChannel<{ slug: string }, void>("agents:delete");
 export const channelDelete = defineChannel<{ slug: string }, void>("channels:delete");
 export const commandDelete = defineChannel<{ slug: string }, void>("commands:delete");
+export const agentExport = defineChannel<{ slug: string }, { path: string | null }>(
+  "agents:export",
+);
+export const channelExport = defineChannel<{ slug: string }, { path: string | null }>(
+  "channels:export",
+);
+export const agentImport = defineChannel<void, AgentImportResult>("agents:import");
 // Fired by the host whenever agents/commands change on disk so the picker /
 // palette can refresh without polling.
 export const agentsChanged = defineEvent<void>("evt:agentschanged");
 
 // --- Stohr ----------------------------------------------------------------
-// Connect Narrative to a Stohr instance (self-hostable cloud storage).
+// Connect Bethink to a Stohr instance (self-hostable cloud storage).
 
 export const stohrStatus = defineChannel<void, StohrStatus>("stohr:status");
 export const stohrConnectToken = defineChannel<

@@ -1,4 +1,4 @@
-// The plugin registries. Everything a plugin contributes to Narrative's UI —
+// The plugin registries. Everything a plugin contributes to Bethink's UI —
 // commands, ribbon icons, status-bar items, settings tabs, custom views,
 // markdown processors — lands here, tagged by plugin id, so disabling a
 // plugin removes exactly its entries. A tiny subscribe/notify lets the React
