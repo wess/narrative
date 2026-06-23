@@ -361,8 +361,8 @@ handle(ch.projectProposals, () => withVault((vault) => listProjectWriteProposals
 handle(ch.projectProposalApprove, ({ id }) =>
   withVault((vault) => decideProjectWriteProposal(vault.root, id, true), []),
 );
-handle(ch.projectProposalReject, ({ id }) =>
-  withVault((vault) => decideProjectWriteProposal(vault.root, id, false), []),
+handle(ch.projectProposalReject, ({ id, comment }) =>
+  withVault((vault) => decideProjectWriteProposal(vault.root, id, false, comment ?? ""), []),
 );
 
 handle(ch.getBacklinks, ({ id }) =>

@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Bot,
   Columns2,
+  Crosshair,
   Download,
   Hash,
   Network,
@@ -44,6 +45,7 @@ export const Topbar = () => {
     history,
     historyAt,
     splitId,
+    contextPickMode,
   } = useApp();
 
   const crumbs = view === "editor" && activePage ? breadcrumb(tree, activePage.id) : [];
@@ -129,6 +131,15 @@ export const Topbar = () => {
       <div className="topbar-right">
         {view === "editor" && activePage ? (
           <>
+            <button
+              type="button"
+              className="icon-btn"
+              data-on={contextPickMode}
+              title={contextPickMode ? "Cancel context pick" : "Pick note context for AI"}
+              onClick={() => actions.toggleContextPickMode()}
+            >
+              <Crosshair size={15} />
+            </button>
             <button
               type="button"
               className="icon-btn"

@@ -224,6 +224,7 @@ type StoredRow = {
   readonly role?: string;
   readonly status?: string;
   readonly reason?: string;
+  readonly reviewComment?: string;
   readonly createdAt?: string;
   readonly updatedAt?: string;
   readonly systemPrompt?: string;
@@ -435,15 +436,21 @@ export const runUnifiedSearch = async (
       "✎",
       query,
       store.query<StoredRow>(
-        "SELECT id, projectSlug, path, reason, content, status, updatedAt FROM projectWriteProposals ORDER BY id DESC LIMIT 200",
+        "SELECT id, projectSlug, path, reason, reviewComment, content, status, updatedAt FROM projectWriteProposals ORDER BY id DESC LIMIT 200",
       ),
       (row) => ({
         id: row.id ?? 0,
         target: String(row.id ?? 0),
         title: text(row.path) || `Proposal ${row.id ?? ""}`,
         subtitle: [text(row.status), text(row.projectSlug)].filter(Boolean).join(" / "),
-        text: [text(row.path), text(row.reason), text(row.content), text(row.projectSlug)],
-        snippetFrom: text(row.reason) || text(row.content),
+        text: [
+          text(row.path),
+          text(row.reason),
+          text(row.reviewComment),
+          text(row.content),
+          text(row.projectSlug),
+        ],
+        snippetFrom: text(row.reviewComment) || text(row.reason) || text(row.content),
       }),
     ),
   );

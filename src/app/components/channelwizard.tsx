@@ -48,7 +48,7 @@ const PRESETS: Preset[] = [
     purpose: "Build or improve a project with a shared brief and assigned agents.",
     outcome: "A clear plan, useful tradeoffs, and concrete next actions.",
     rules:
-      "Stay grounded in the vault. Separate decisions from open questions. Keep action items explicit.",
+      "Stay grounded in the user's notes. Separate decisions from open questions. Keep action items explicit.",
   },
   {
     id: "studio",
@@ -64,7 +64,7 @@ const PRESETS: Preset[] = [
     label: "Research lab",
     icon: "\u{1F52C}",
     description: "Investigate questions with research, synthesis, and review roles.",
-    purpose: "Research a topic using vault notes and explicit uncertainty.",
+    purpose: "Research a topic using notes and explicit uncertainty.",
     outcome: "A sourced synthesis with gaps, contradictions, and recommended follow-up.",
     rules: "Search before answering. Cite page titles. Distinguish evidence from inference.",
   },

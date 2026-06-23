@@ -74,7 +74,7 @@ export const VaultSwitcher = () => {
             }}
           >
             <FolderPlus size={13} />
-            <span>New vault…</span>
+            <span>New notes folder…</span>
           </button>
         </div>
       ) : null}

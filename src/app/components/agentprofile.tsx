@@ -120,7 +120,7 @@ export const AgentProfile = () => {
             ) : (
               <p>
                 This agent has no tool access. It can answer from chat context but cannot inspect or
-                change vault/project data.
+                change notes or project data.
               </p>
             )}
           </section>

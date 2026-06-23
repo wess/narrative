@@ -47,7 +47,7 @@ const PRESETS: Preset[] = [
     description: "Research lead who finds relevant notes, compares sources, and cites answers.",
     tools: ["vault.search", "vault.semanticsearch", "vault.read", "vault.backlinks"],
     prompt:
-      "You are Ada, a research lead for the user's vault. Search before answering, read the strongest matching pages, compare conflicting notes, and cite page titles in concise prose.",
+      "You are Ada, a research lead for the user's notes. Search before answering, read the strongest matching pages, compare conflicting notes, and cite page titles in concise prose.",
   },
   {
     id: "scribe",
@@ -56,17 +56,17 @@ const PRESETS: Preset[] = [
     description: "Editorial partner who turns rough notes into clear drafts without losing intent.",
     tools: ["vault.read", "vault.update", "vault.create"],
     prompt:
-      "You are Mira, an editorial partner for the user's vault. Preserve the user's intent, tighten structure, remove filler, and only edit pages when asked.",
+      "You are Mira, an editorial partner for the user's notes. Preserve the user's intent, tighten structure, remove filler, and only edit pages when asked.",
   },
   {
     id: "librarian",
     label: "Rowan",
     icon: "\u{1F4DA}",
     description:
-      "Vault librarian who organizes pages, links ideas, and surfaces missing connections.",
+      "Notes librarian who organizes pages, links ideas, and surfaces missing connections.",
     tools: ["vault.search", "vault.read", "vault.backlinks", "vault.outgoing", "vault.update"],
     prompt:
-      "You are Rowan, a vault librarian. Prefer organization, links, tags, and clear page relationships over long prose.",
+      "You are Rowan, a notes librarian. Prefer organization, links, tags, and clear page relationships over long prose.",
   },
   {
     id: "operator",
@@ -75,7 +75,7 @@ const PRESETS: Preset[] = [
     description: "Operations specialist who executes focused page work with minimal chatter.",
     tools: ["vault.search", "vault.read", "vault.create", "vault.update"],
     prompt:
-      "You are Quinn, an operations specialist for the user's vault. Clarify only when blocked, make direct changes when asked, and keep status updates short.",
+      "You are Quinn, an operations specialist for the user's notes. Clarify only when blocked, make direct changes when asked, and keep status updates short.",
   },
 ];
 
@@ -86,10 +86,10 @@ const emptyDraft = (): Draft => ({
   provider: "",
   model: "",
   tools: PRESETS[0]?.tools ?? [],
-  purpose: "Answer questions using the strongest notes in my vault.",
+  purpose: "Answer questions using my strongest notes.",
   style: "Direct, cited, and concise.",
   rules:
-    "Search before answering. Cite page titles. Say when the vault does not contain enough evidence.",
+    "Search before answering. Cite page titles. Say when the notes do not contain enough evidence.",
   freeform: "",
 });
 
@@ -115,7 +115,7 @@ const sourceFromDraft = (draft: Draft): string => {
   const body =
     draft.freeform.trim() ||
     [
-      `You are ${draft.name.trim() || "an agent"}, an assistant working inside the user's Bethink vault.`,
+      `You are ${draft.name.trim() || "an agent"}, an assistant working inside the user's Bethink notes.`,
       "",
       `Purpose: ${draft.purpose.trim() || draft.description.trim() || "Help with the user's notes."}`,
       `Response style: ${draft.style.trim() || "Clear, concise, and grounded."}`,
@@ -203,7 +203,7 @@ export const AgentWizard = () => {
     if (mode === "guided") {
       setDraft({
         ...emptyDraft(),
-        name: "Vault Specialist",
+        name: "Notes Specialist",
         description: "A custom agent guided by my answers.",
         icon: "\u{1F9ED}",
         tools: ["vault.search", "vault.read", "vault.semanticsearch"],
@@ -264,9 +264,7 @@ export const AgentWizard = () => {
         <header className="agentwizard-head">
           <div>
             <h2>Create agent</h2>
-            <p>
-              Agents are Markdown files in your vault with model, provider, tools, and a prompt.
-            </p>
+            <p>Agents are Markdown files with model, provider, tools, and a prompt.</p>
           </div>
           <button
             type="button"

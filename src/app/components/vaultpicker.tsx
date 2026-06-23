@@ -18,7 +18,7 @@ export const VaultPicker = () => {
           <h1>Bethink</h1>
         </div>
         <p className="vault-picker-tag">
-          Your vault is a folder of Markdown files — open one, or create a new one.
+          Your notes live in a folder of Markdown files. Open one, or create a new one.
         </p>
 
         <div className="vault-picker-actions">
@@ -32,13 +32,13 @@ export const VaultPicker = () => {
             onClick={() => void actions.pickVault("create")}
           >
             <FolderPlus size={16} />
-            Create new vault…
+            Create new notes folder…
           </button>
         </div>
 
         {vaultRecents.length > 0 ? (
           <div className="vault-picker-recents">
-            <h2>Recent vaults</h2>
+            <h2>Recent notes folders</h2>
             <ul>
               {vaultRecents.map((entry) => (
                 <li key={entry.root}>

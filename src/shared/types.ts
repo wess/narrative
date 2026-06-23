@@ -384,6 +384,7 @@ export type ProjectWriteProposal = {
   readonly content: string;
   readonly diff: string | null;
   readonly reason: string;
+  readonly reviewComment: string;
   readonly status: ProjectWriteProposalStatus;
   readonly createdAt: string;
   readonly updatedAt: string;

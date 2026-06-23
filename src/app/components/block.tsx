@@ -196,6 +196,8 @@ const buildBlockMenu = (block: Block, ops: BlockOps): CtxItem[] => [
 export type BlockProps = {
   block: Block;
   ordinal: number;
+  pageTitle: string;
+  contextPickMode: boolean;
   ops: BlockOps;
   pageTitles: readonly string[];
   tagNames: readonly string[];
@@ -203,6 +205,19 @@ export type BlockProps = {
   onFocused: () => void;
   dragId: string | null;
   setDragId: (id: string | null) => void;
+};
+
+const blockContextText = (block: Block): string => {
+  if (block.type === "table") {
+    return (block.rows ?? []).map((row) => row.join(" | ")).join("\n");
+  }
+  if (block.type === "image") return `Image: ${block.src || "(no source)"} ${block.alt || ""}`;
+  if (block.type === "embed") return `Embedded page: ${block.target || "(unset)"}`;
+  if (block.type === "properties") {
+    return (block.props ?? []).map((prop) => `${prop.key}: ${prop.value}`).join("\n");
+  }
+  if (block.type === "divider") return "---";
+  return block.text;
 };
 
 type ActiveMenu = {
@@ -655,7 +670,17 @@ const TextBlock = ({
 // --- block (wrapper + content dispatch) ----------------------------------
 
 const BlockInner = (props: BlockProps) => {
-  const { block, ordinal, ops, pendingFocus, onFocused, dragId, setDragId } = props;
+  const {
+    block,
+    ordinal,
+    pageTitle,
+    contextPickMode,
+    ops,
+    pendingFocus,
+    onFocused,
+    dragId,
+    setDragId,
+  } = props;
   const editableRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<HTMLTextAreaElement>(null);
   const plainRef = useRef<HTMLDivElement>(null);
@@ -965,9 +990,19 @@ const BlockInner = (props: BlockProps) => {
       id={headingId}
       data-type={block.type}
       data-checked={block.type === "todo" ? Boolean(block.checked) : undefined}
+      data-context-pick={contextPickMode}
       data-drop={dropPos ?? undefined}
       data-dragging={dragId === block.id}
       style={block.indent ? { marginLeft: `${block.indent * 22}px` } : undefined}
+      onClickCapture={(event) => {
+        if (!contextPickMode) return;
+        event.preventDefault();
+        event.stopPropagation();
+        actions.attachPickedContext({
+          pageTitle,
+          blockText: blockContextText(block),
+        });
+      }}
       onDragOver={onDragOver}
       onDragLeave={() => setDropPos(null)}
       onDrop={onDrop}

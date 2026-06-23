@@ -248,6 +248,13 @@ export const AiChat = () => {
     if (el) el.scrollTop = el.scrollHeight;
   }, [chat.messages]);
 
+  useEffect(() => {
+    if (!chat.pendingContext) return;
+    setInput(chat.pendingContext);
+    actions.consumePendingContext();
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, [chat.pendingContext]);
+
   const send = () => {
     const text = input;
     if (!text.trim() || chat.streaming) return;
@@ -393,7 +400,7 @@ export const AiChat = () => {
               checked={chat.useVault}
               onChange={(e) => actions.setAiVault(e.target.checked)}
             />
-            <span>Search my vault</span>
+            <span>Search my notes</span>
           </label>
         </div>
         <div className="aichat-inputrow">

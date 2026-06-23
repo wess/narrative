@@ -34,7 +34,7 @@ const visibleLength = (md: string): number => {
 };
 
 export const Editor = () => {
-  const { activePage, tree, tags, pendingScroll } = useApp();
+  const { activePage, tree, tags, pendingScroll, contextPickMode } = useApp();
 
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [pendingFocus, setPendingFocus] = useState<Focus>(null);
@@ -474,6 +474,14 @@ export const Editor = () => {
           </div>
         </div>
       ) : null}
+      {contextPickMode ? (
+        <div className="editor-contextpick" role="status">
+          Click a block to attach it to the AI assistant.
+          <button type="button" onClick={() => actions.setContextPickMode(false)}>
+            Cancel
+          </button>
+        </div>
+      ) : null}
       <div className="editor-scroll">
         <article className="doc">
           {/* biome-ignore lint/a11y/noStaticElementInteractions: right-click menu host; the same page actions are reachable from the command palette */}
@@ -521,6 +529,8 @@ export const Editor = () => {
                 key={b.id}
                 block={b}
                 ordinal={ordinals.get(b.id) ?? 1}
+                pageTitle={page.title || "Untitled"}
+                contextPickMode={contextPickMode}
                 ops={ops}
                 pageTitles={pageTitles}
                 tagNames={tagNames}

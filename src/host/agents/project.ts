@@ -58,6 +58,7 @@ type ProjectWriteProposalRow = {
   readonly path: string;
   readonly content: string;
   readonly reason: string;
+  readonly reviewComment: string;
   readonly status: ProjectWriteProposalStatus;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -135,6 +136,7 @@ const proposalFromRow = (
   content: row.content,
   diff,
   reason: row.reason,
+  reviewComment: row.reviewComment,
   status: row.status,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
@@ -355,6 +357,7 @@ export const decideProjectWriteProposal = async (
   vaultRoot: string,
   id: number,
   approve: boolean,
+  comment = "",
 ): Promise<ProjectWriteProposal[]> => {
   const db = await openAgentStore(vaultRoot);
   const row = db.query<ProjectWriteProposalRow>(
@@ -366,8 +369,9 @@ export const decideProjectWriteProposal = async (
     await writeProjectFile(vaultRoot, row.projectSlug, row.path, row.content, row.reason);
   }
   db.exec(
-    "UPDATE projectWriteProposals SET status = ?, updatedAt = ? WHERE id = ?",
+    "UPDATE projectWriteProposals SET status = ?, reviewComment = ?, updatedAt = ? WHERE id = ?",
     approve ? "approved" : "rejected",
+    comment.trim().slice(0, 4000),
     now(),
     id,
   );

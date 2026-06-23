@@ -48,10 +48,19 @@ export type ChatState = {
   readonly requestId: string | null;
   readonly useContext: boolean;
   readonly useVault: boolean;
+  readonly pendingContext: string | null;
   // Slug of the active agent, or null to use the plain assistant.
   readonly agentSlug: string | null;
   // Slug of the active channel. When set, chat fans out to its member agents.
   readonly channelSlug: string | null;
+};
+
+export type InboxState = {
+  readonly open: boolean;
+  readonly unreadRuns: number;
+  readonly unreadProposals: number;
+  readonly lastSeenRunId: number;
+  readonly lastSeenProposalId: number;
 };
 
 export type AgentEditorState = {
@@ -116,6 +125,7 @@ export type AppState = {
   readonly settingsTab: string;
   readonly firstSetupOpen: boolean;
   readonly aiOpen: boolean;
+  readonly contextPickMode: boolean;
   readonly aiConfig: AiConfig | null;
   readonly aiHealth: AiHealth | null;
   readonly embedStatus: EmbedStatus | null;
@@ -133,6 +143,7 @@ export type AppState = {
   readonly agentGuideOpen: boolean;
   readonly agentProfileSlug: string | null;
   readonly agentRuns: readonly AgentRun[];
+  readonly inbox: InboxState;
   readonly runTimelineOpen: boolean;
   readonly memories: readonly MemoryRecord[];
   readonly memoryManagerOpen: boolean;
@@ -209,6 +220,7 @@ const initial: AppState = {
   settingsTab: "general",
   firstSetupOpen: false,
   aiOpen: readPref<boolean>("aiOpen", false),
+  contextPickMode: false,
   aiConfig: null,
   aiHealth: null,
   embedStatus: null,
@@ -220,6 +232,7 @@ const initial: AppState = {
     requestId: null,
     useContext: true,
     useVault: readPref<boolean>("aiUseVault", false),
+    pendingContext: null,
     agentSlug: readPref<string | null>("aiAgent", null),
     channelSlug: readPref<string | null>("aiChannel", null),
   },
@@ -234,6 +247,13 @@ const initial: AppState = {
   agentGuideOpen: false,
   agentProfileSlug: null,
   agentRuns: [],
+  inbox: {
+    open: false,
+    unreadRuns: 0,
+    unreadProposals: 0,
+    lastSeenRunId: readPref<number>("lastSeenRunId", 0),
+    lastSeenProposalId: readPref<number>("lastSeenProposalId", 0),
+  },
   runTimelineOpen: false,
   memories: [],
   memoryManagerOpen: false,

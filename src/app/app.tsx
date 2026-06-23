@@ -5,6 +5,7 @@ import { useEffect, useMemo } from "react";
 import * as ch from "../shared/channels.ts";
 import { AgentEditor } from "./components/agenteditor.tsx";
 import { AgentGuide } from "./components/agentguide.tsx";
+import { AgentInbox } from "./components/agentinbox.tsx";
 import { AgentProfile } from "./components/agentprofile.tsx";
 import { AgentWizard } from "./components/agentwizard.tsx";
 import { AiChat } from "./components/aichat.tsx";
@@ -268,6 +269,27 @@ export const App = () => {
         keywords: ["preferences", "ai", "provider"],
         action: () => actions.openSettings(),
       },
+      {
+        id: "cmd-inbox",
+        label: "Open agent inbox",
+        hint: "activity",
+        keywords: ["notifications", "unread", "review", "agents"],
+        action: () => void actions.openInbox(),
+      },
+      {
+        id: "cmd-runs",
+        label: "Open run history",
+        hint: "agents",
+        keywords: ["timeline", "history", "activity"],
+        action: () => void actions.openRunTimeline(),
+      },
+      {
+        id: "cmd-review",
+        label: "Review proposed changes",
+        hint: "agents",
+        keywords: ["diff", "approval", "changes"],
+        action: () => void actions.openReviewQueue(),
+      },
       { id: "cmd-theme", label: "Toggle theme", hint: "⌘⇧L", action: () => actions.cycleTheme() },
       {
         id: "cmd-export",
@@ -286,6 +308,65 @@ export const App = () => {
         icon: node.icon || undefined,
         action: () => void actions.openPage(node.id),
       }));
+    const noteCommands = state.commands.map<PaletteCommand>((cmd) => ({
+      id: `command-${cmd.slug}`,
+      label: cmd.name,
+      hint: "command",
+      keywords: ["assistant", "prompt", cmd.description, cmd.slug],
+      icon: cmd.icon,
+      action: () => void actions.runCommand(cmd.slug),
+    }));
+    const agents = state.agents.map<PaletteCommand>((agent) => ({
+      id: `agent-${agent.slug}`,
+      label: agent.name,
+      hint: "agent",
+      keywords: ["assistant", "ai", agent.description, agent.slug],
+      icon: agent.icon,
+      action: () => {
+        actions.setAgent(agent.slug);
+        actions.openAi();
+        actions.openAgentProfile(agent.slug);
+      },
+    }));
+    const channels = state.channels.map<PaletteCommand>((channel) => ({
+      id: `channel-${channel.slug}`,
+      label: channel.name,
+      hint: "channel",
+      keywords: ["assistant", "ai", channel.description, channel.slug],
+      icon: channel.icon || undefined,
+      action: () => {
+        actions.setChannel(channel.slug);
+        actions.openAi();
+        void actions.openChannelProfile(channel.slug);
+      },
+    }));
+    const projects = state.projects.map<PaletteCommand>((project) => ({
+      id: `project-${project.slug}`,
+      label: project.name,
+      hint: "project",
+      keywords: ["folder", "files", "agent", project.path, project.slug],
+      action: () => void actions.openProjectInspector(project.slug),
+    }));
+    const tags = state.tags.map<PaletteCommand>((tag) => ({
+      id: `tag-${tag.tag}`,
+      label: `#${tag.tag}`,
+      hint: "tag",
+      keywords: ["tag", "notes"],
+      action: () => void actions.openTag(tag.tag),
+    }));
+    const settingtabs = [
+      ["general", "Open general settings"],
+      ["ai", "Open AI settings"],
+      ["stohr", "Open sync settings"],
+      ["plugins", "Open plugin settings"],
+    ] as const;
+    const settings = settingtabs.map<PaletteCommand>(([tab, label]) => ({
+      id: `settings-${tab}`,
+      label,
+      hint: "settings",
+      keywords: ["preferences", tab],
+      action: () => actions.openSettings(tab),
+    }));
     // Plugin-contributed commands land in the same palette as Bethink's own.
     const pluginCommands = registry.commands.map<PaletteCommand>((cmd) => ({
       id: `plugin-${cmd.id}`,
@@ -296,8 +377,26 @@ export const App = () => {
         pluginRuntime.getApp().commands.executeCommandById(cmd.id);
       },
     }));
-    return [...base, ...pluginCommands, ...pages];
-  }, [state.tree, registry.commands]);
+    return [
+      ...base,
+      ...settings,
+      ...noteCommands,
+      ...agents,
+      ...channels,
+      ...projects,
+      ...tags,
+      ...pluginCommands,
+      ...pages,
+    ];
+  }, [
+    state.tree,
+    state.commands,
+    state.agents,
+    state.channels,
+    state.projects,
+    state.tags,
+    registry.commands,
+  ]);
 
   // No vault open — the picker takes over the whole window.
   if (!state.vault) return <VaultPicker />;
@@ -360,6 +459,7 @@ export const App = () => {
       />
       <Settings />
       <CommandPalette />
+      <AgentInbox />
       <AgentEditor />
       <AgentGuide />
       <AgentProfile />

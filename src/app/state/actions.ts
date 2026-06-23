@@ -2,11 +2,13 @@ import { invoke } from "@basket/ipc/client";
 import { toast } from "@basket/ui/toast";
 import * as ch from "../../shared/channels.ts";
 import type {
+  AgentRun,
   AiProvider,
   ChatMessage,
   KanbanPriority,
   KanbanStatus,
   ProjectFileNode,
+  ProjectWriteProposal,
   StohrConnectResult,
   StohrSyncResult,
   ToolCall,
@@ -29,6 +31,37 @@ const ancestorsOf = (id: number): number[] => {
     current = byId.get(current.parentId);
   }
   return path;
+};
+
+const newestId = (items: readonly { readonly id: number }[]): number =>
+  items.reduce((max, item) => Math.max(max, item.id), 0);
+
+const unreadSince = (items: readonly { readonly id: number }[], lastSeen: number): number =>
+  items.filter((item) => item.id > lastSeen).length;
+
+const applyInboxData = (
+  agentRuns: readonly AgentRun[],
+  projectProposals: readonly ProjectWriteProposal[],
+  notify = false,
+): void => {
+  const { inbox } = getState();
+  const unreadRuns = inbox.open ? 0 : unreadSince(agentRuns, inbox.lastSeenRunId);
+  const unreadProposals = inbox.open ? 0 : unreadSince(projectProposals, inbox.lastSeenProposalId);
+  const hadUnread = inbox.unreadRuns + inbox.unreadProposals;
+  const nextUnread = unreadRuns + unreadProposals;
+  setState({
+    agentRuns,
+    projectProposals,
+    inbox: { ...inbox, unreadRuns, unreadProposals },
+  });
+  if (notify && nextUnread > hadUnread && !inbox.open) {
+    toast.info("Agent activity needs review", {
+      description:
+        unreadProposals > 0
+          ? `${unreadProposals} proposed change${unreadProposals === 1 ? "" : "s"} waiting`
+          : `${unreadRuns} new run${unreadRuns === 1 ? "" : "s"} recorded`,
+    });
+  }
 };
 
 export type AgentSourceInput = {
@@ -72,6 +105,7 @@ export const actions = {
     await refreshTree();
     void actions.loadSettings();
     void actions.refreshAgents();
+    void actions.refreshInbox();
     const { tree, activeId } = getState();
     // Open the first *file* — folders aren't editable pages.
     const firstFile = flattenTree(tree).find((n) => n.kind === "file");
@@ -133,7 +167,7 @@ export const actions = {
   openVault: async (path: string): Promise<void> => {
     const vault = await invoke(ch.vaultOpen, { path });
     if (vault) await actions.afterVaultChange(vault);
-    else toast.error("Couldn't open that folder as a vault.");
+    else toast.error("Couldn't open that notes folder.");
   },
 
   // Open the OS folder picker on the host, then open / create the vault.
@@ -150,7 +184,7 @@ export const actions = {
   backupVault: async (): Promise<void> => {
     const result = await invoke(ch.vaultBackup, undefined);
     if (result.path) {
-      toast.success("Vault backup created", { description: `${result.files} file(s)` });
+      toast.success("Notes folder backup created", { description: `${result.files} file(s)` });
     }
   },
 
@@ -161,7 +195,7 @@ export const actions = {
       return;
     }
     if (result.root) {
-      toast.success("Vault restored", { description: `${result.files} file(s)` });
+      toast.success("Notes folder restored", { description: `${result.files} file(s)` });
       await actions.reloadVault();
     }
   },
@@ -586,7 +620,7 @@ export const actions = {
   },
 
   reindexVault: async (): Promise<void> => {
-    toast.info("Indexing your vault…");
+    toast.info("Indexing your notes…");
     const { status, message } = await invoke(ch.reindexVault, undefined);
     setState({ embedStatus: status });
     toast.success(message);
@@ -718,6 +752,27 @@ export const actions = {
     setState({ aiOpen: true });
   },
 
+  toggleContextPickMode: (): void => setState((s) => ({ contextPickMode: !s.contextPickMode })),
+
+  setContextPickMode: (contextPickMode: boolean): void => setState({ contextPickMode }),
+
+  attachPickedContext: (input: { pageTitle: string; blockText: string }): void => {
+    const text = input.blockText.trim();
+    if (!text) return;
+    writePref("aiOpen", true);
+    setState((s) => ({
+      aiOpen: true,
+      contextPickMode: false,
+      chat: {
+        ...s.chat,
+        pendingContext: `Use this selected note context from "${input.pageTitle}":\n\n${text}\n\nI want to: `,
+      },
+    }));
+  },
+
+  consumePendingContext: (): void =>
+    setState((s) => ({ chat: { ...s.chat, pendingContext: null } })),
+
   // --- agents + commands -------------------------------------------------
 
   refreshAgents: async (): Promise<void> => {
@@ -750,11 +805,7 @@ export const actions = {
         projects,
         commands,
         toolDefs,
-        firstSetupOpen:
-          !readPref<boolean>("firstSetupDone", false) &&
-          agents.length === 0 &&
-          channels.length === 0 &&
-          projects.length === 0,
+        firstSetupOpen: !readPref<boolean>("firstSetupDone", false),
         agentProfileSlug: profileStillThere ? s.agentProfileSlug : null,
         channelProfileSlug: channelProfileStillThere ? s.channelProfileSlug : null,
         chat: { ...s.chat, agentSlug, channelSlug },
@@ -783,11 +834,46 @@ export const actions = {
   openRunTimeline: async (): Promise<void> => {
     setState({ runTimelineOpen: true });
     await actions.refreshRunTimeline();
+    const { agentRuns, inbox } = getState();
+    const lastSeenRunId = Math.max(inbox.lastSeenRunId, newestId(agentRuns));
+    writePref("lastSeenRunId", lastSeenRunId);
+    setState({ inbox: { ...inbox, lastSeenRunId, unreadRuns: 0 } });
   },
   closeRunTimeline: (): void => setState({ runTimelineOpen: false }),
   refreshRunTimeline: async (): Promise<void> => {
     const agentRuns = await invoke(ch.agentRuns, { limit: 100 });
-    setState({ agentRuns });
+    const { projectProposals } = getState();
+    applyInboxData(agentRuns, projectProposals);
+  },
+  openInbox: async (): Promise<void> => {
+    setState((s) => ({ inbox: { ...s.inbox, open: true } }));
+    await actions.refreshInbox();
+    actions.markInboxSeen();
+  },
+  closeInbox: (): void => setState((s) => ({ inbox: { ...s.inbox, open: false } })),
+  markInboxSeen: (): void => {
+    const { agentRuns, projectProposals, inbox } = getState();
+    const lastSeenRunId = Math.max(inbox.lastSeenRunId, newestId(agentRuns));
+    const lastSeenProposalId = Math.max(inbox.lastSeenProposalId, newestId(projectProposals));
+    writePref("lastSeenRunId", lastSeenRunId);
+    writePref("lastSeenProposalId", lastSeenProposalId);
+    setState({
+      inbox: {
+        ...inbox,
+        lastSeenRunId,
+        lastSeenProposalId,
+        unreadRuns: 0,
+        unreadProposals: 0,
+      },
+    });
+  },
+  refreshInbox: async (opts?: { notify?: boolean }): Promise<void> => {
+    const [agentRuns, projectProposals] = await Promise.all([
+      invoke(ch.agentRuns, { limit: 100 }),
+      invoke(ch.projectProposals, undefined),
+    ]);
+    applyInboxData(agentRuns, projectProposals, opts?.notify ?? false);
+    if (getState().inbox.open) actions.markInboxSeen();
   },
   openMemoryManager: async (): Promise<void> => {
     setState({ memoryManagerOpen: true });
@@ -909,24 +995,45 @@ export const actions = {
   openReviewQueue: async (): Promise<void> => {
     setState({ reviewQueueOpen: true });
     await actions.refreshReviewQueue();
+    const { projectProposals, inbox } = getState();
+    const lastSeenProposalId = Math.max(inbox.lastSeenProposalId, newestId(projectProposals));
+    writePref("lastSeenProposalId", lastSeenProposalId);
+    setState({ inbox: { ...inbox, lastSeenProposalId, unreadProposals: 0 } });
   },
 
   closeReviewQueue: (): void => setState({ reviewQueueOpen: false }),
 
   refreshReviewQueue: async (): Promise<void> => {
     const projectProposals = await invoke(ch.projectProposals, undefined);
-    setState({ projectProposals });
+    const { agentRuns } = getState();
+    applyInboxData(agentRuns, projectProposals);
   },
 
   approveProjectProposal: async (id: number): Promise<void> => {
     const projectProposals = await invoke(ch.projectProposalApprove, { id });
-    setState({ projectProposals });
+    const { agentRuns } = getState();
+    applyInboxData(agentRuns, projectProposals);
     toast.success("Change approved");
   },
 
-  rejectProjectProposal: async (id: number): Promise<void> => {
-    const projectProposals = await invoke(ch.projectProposalReject, { id });
-    setState({ projectProposals });
+  rejectProjectProposal: async (id: number, comment = ""): Promise<void> => {
+    const proposal = getState().projectProposals.find((item) => item.id === id);
+    const projectProposals = await invoke(ch.projectProposalReject, { id, comment });
+    const { agentRuns } = getState();
+    applyInboxData(agentRuns, projectProposals);
+    if (proposal && comment.trim()) {
+      writePref("aiOpen", true);
+      setState((s) => ({
+        aiOpen: true,
+        chat: {
+          ...s.chat,
+          pendingContext:
+            `I reviewed the proposed change for ${proposal.path} and sent it back.\n\n` +
+            `Reviewer comment:\n${comment.trim()}\n\n` +
+            "Revise the proposal with that feedback.",
+        },
+      }));
+    }
     toast.success("Change rejected");
   },
 
@@ -1264,6 +1371,7 @@ export const actions = {
         requestId: null,
         useContext: s.chat.useContext,
         useVault: s.chat.useVault,
+        pendingContext: null,
         agentSlug: s.chat.agentSlug,
         channelSlug: s.chat.channelSlug,
       },
@@ -1360,6 +1468,7 @@ export const actions = {
     }
 
     setState((s) => ({ chat: { ...s.chat, streaming: false, requestId: null } }));
+    await actions.refreshInbox({ notify: true });
   },
 
   summarizePage: async (id: number): Promise<void> => {

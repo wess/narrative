@@ -62,18 +62,18 @@ const GeneralTab = ({ theme }: { theme: Theme }) => (
     </div>
     <p className="settings-hint">System follows your macOS appearance setting automatically.</p>
     <div className="settings-field">
-      <span className="settings-label">Vault backup</span>
+      <span className="settings-label">Notes folder backup</span>
       <div className="settings-field-row">
         <button type="button" className="settings-btn" onClick={() => void actions.backupVault()}>
-          Back up vault
+          Back up notes
         </button>
         <button type="button" className="settings-btn" onClick={() => void actions.restoreVault()}>
           Restore backup
         </button>
       </div>
       <p className="settings-hint">
-        Backups include pages, attachments, agents, channels, memory, project records, and the local
-        SQLite store.
+        Backups include pages, attachments, agents, channels, memory, project records, and local app
+        data.
       </p>
     </div>
   </div>
@@ -95,6 +95,7 @@ const AiTab = ({
   const [keyInput, setKeyInput] = useState("");
   const [test, setTest] = useState<{ ok: boolean; message: string } | null>(null);
   const [testing, setTesting] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     setModel(config?.model ?? "");
@@ -106,6 +107,7 @@ const AiTab = ({
   if (!config) return <div className="settings-section">Loading…</div>;
   const provider = config.provider;
   const preset = PROVIDERS[provider];
+  const usesLocal = provider === "ollama";
 
   const runTest = async () => {
     setTesting(true);
@@ -115,42 +117,48 @@ const AiTab = ({
     setTesting(false);
   };
 
+  const useLocal = () => {
+    void actions.updateSettings({
+      provider: "ollama",
+      baseURL: PROVIDERS.ollama.defaultBaseURL,
+      model: PROVIDERS.ollama.defaultModel,
+    });
+  };
+
+  const useApiKey = () => {
+    if (provider !== "ollama") return;
+    void actions.updateSettings({
+      provider: "openai",
+      baseURL: PROVIDERS.openai.defaultBaseURL,
+      model: PROVIDERS.openai.defaultModel,
+    });
+  };
+
   return (
     <div className="settings-section">
-      <div className="settings-field">
-        <span className="settings-label">Provider</span>
-        <select
-          className="settings-select"
-          value={provider}
-          onChange={(e) => void actions.updateSettings({ provider: e.target.value as AiProvider })}
-        >
-          {PROVIDER_IDS.map((id) => (
-            <option key={id} value={id}>
-              {PROVIDERS[id].label}
-            </option>
-          ))}
-        </select>
+      <div className="settings-choice">
+        <button type="button" data-on={usesLocal} onClick={useLocal}>
+          <strong>Use local AI</strong>
+          <span>Works with Ollama running on this computer.</span>
+        </button>
+        <button type="button" data-on={!usesLocal} onClick={useApiKey}>
+          <strong>Use an API key</strong>
+          <span>Connect a hosted provider and save the key in Keychain.</span>
+        </button>
       </div>
 
-      <div className="settings-field">
-        <span className="settings-label">Server URL</span>
-        <input
-          className="settings-input"
-          value={baseURL}
-          placeholder={preset.defaultBaseURL || "https://your-server/v1"}
-          onChange={(e) => setBaseURL(e.target.value)}
-          onBlur={() => {
-            if (baseURL !== config.baseURL) void actions.updateSettings({ baseURL });
-          }}
-        />
-      </div>
+      <p className="settings-hint">
+        {usesLocal
+          ? "Start Ollama on this computer, then check the assistant."
+          : `Current provider: ${preset.label}. Save a key if this provider requires one.`}
+      </p>
 
       {preset.usesKey ? (
         <div className="settings-field">
-          <span className="settings-label">API Key</span>
+          <span className="settings-label">API key</span>
           {config.hasKey ? (
             <div className="settings-keyrow">
-              <span className="settings-keyset">•••••••••••••••• saved in Keychain</span>
+              <span className="settings-keyset">Saved in Keychain</span>
               <button
                 type="button"
                 className="settings-btn"
@@ -177,7 +185,7 @@ const AiTab = ({
                   setKeyInput("");
                 }}
               >
-                Save
+                Save key
               </button>
             </div>
           )}
@@ -185,22 +193,9 @@ const AiTab = ({
         </div>
       ) : null}
 
-      <div className="settings-field">
-        <span className="settings-label">Model</span>
-        <input
-          className="settings-input"
-          value={model}
-          placeholder={preset.defaultModel || "model name"}
-          onChange={(e) => setModel(e.target.value)}
-          onBlur={() => {
-            if (model.trim() && model !== config.model) void actions.updateSettings({ model });
-          }}
-        />
-      </div>
-
       <div className="settings-field settings-field-row">
         <button type="button" className="settings-btn" disabled={testing} onClick={runTest}>
-          {testing ? "Checking…" : "Check provider"}
+          {testing ? "Checking…" : "Check assistant"}
         </button>
         {test ? (
           <span className={test.ok ? "settings-test ok" : "settings-test err"}>{test.message}</span>
@@ -219,14 +214,6 @@ const AiTab = ({
               {health.keyRequired ? (health.keyPresent ? "Saved" : "Missing") : "Not required"}
             </strong>
           </div>
-          <div data-ok={Boolean(health.baseURL)}>
-            <span>Server</span>
-            <strong>{health.baseURL || "Missing"}</strong>
-          </div>
-          <div data-ok={Boolean(health.model)}>
-            <span>Model</span>
-            <strong>{health.model || "Missing"}</strong>
-          </div>
           <div data-ok={health.chat.checked ? health.chat.ok : health.configured}>
             <span>Chat</span>
             <strong>
@@ -237,90 +224,183 @@ const AiTab = ({
                 : "Not checked"}
             </strong>
           </div>
-          <div data-ok={health.embeddings.supported}>
-            <span>Embeddings</span>
-            <strong>
-              {health.embeddings.supported ? health.embeddings.model || "Supported" : "No"}
-            </strong>
-          </div>
         </div>
       ) : null}
 
-      <div className="settings-field">
-        <span className="settings-label">Semantic index (RAG)</span>
-        <label className="settings-check">
-          <input
-            type="checkbox"
-            checked={config.semanticIndex}
-            onChange={(e) => void actions.setSemanticIndex(e.target.checked)}
-          />
-          <span>Embed pages so the assistant can search your whole vault</span>
-        </label>
-        <div className="settings-field-row">
-          <button
-            type="button"
-            className="settings-btn"
-            disabled={!embedStatus?.supported}
-            onClick={() => void actions.reindexVault()}
-          >
-            Reindex vault
-          </button>
-          {embedStatus ? (
-            <span className="settings-test">
-              {embedStatus.supported
-                ? `${embedStatus.indexed} / ${embedStatus.total} pages indexed`
-                : "No embeddings API for this provider — RAG uses keyword search."}
-            </span>
+      <button
+        type="button"
+        className="settings-disclosure"
+        data-open={advancedOpen}
+        onClick={() => setAdvancedOpen((open) => !open)}
+      >
+        Advanced AI settings
+      </button>
+
+      {advancedOpen ? (
+        <div className="settings-advanced">
+          <div className="settings-field">
+            <span className="settings-label">Provider</span>
+            <select
+              className="settings-select"
+              value={provider}
+              onChange={(e) =>
+                void actions.updateSettings({ provider: e.target.value as AiProvider })
+              }
+            >
+              {PROVIDER_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {PROVIDERS[id].label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="settings-field">
+            <span className="settings-label">Server URL</span>
+            <input
+              className="settings-input"
+              value={baseURL}
+              placeholder={preset.defaultBaseURL || "https://your-server/v1"}
+              onChange={(e) => setBaseURL(e.target.value)}
+              onBlur={() => {
+                if (baseURL !== config.baseURL) void actions.updateSettings({ baseURL });
+              }}
+            />
+          </div>
+
+          <div className="settings-field">
+            <span className="settings-label">Model</span>
+            <input
+              className="settings-input"
+              value={model}
+              placeholder={preset.defaultModel || "model name"}
+              onChange={(e) => setModel(e.target.value)}
+              onBlur={() => {
+                if (model.trim() && model !== config.model) void actions.updateSettings({ model });
+              }}
+            />
+          </div>
+
+          {health ? (
+            <div className="settings-health">
+              <div data-ok={health.configured}>
+                <span>Setup</span>
+                <strong>{health.configured ? "Ready" : "Needs attention"}</strong>
+              </div>
+              <div data-ok={!health.keyRequired || health.keyPresent}>
+                <span>API key</span>
+                <strong>
+                  {health.keyRequired ? (health.keyPresent ? "Saved" : "Missing") : "Not required"}
+                </strong>
+              </div>
+              <div data-ok={Boolean(health.baseURL)}>
+                <span>Server</span>
+                <strong>{health.baseURL || "Missing"}</strong>
+              </div>
+              <div data-ok={Boolean(health.model)}>
+                <span>Model</span>
+                <strong>{health.model || "Missing"}</strong>
+              </div>
+              <div data-ok={health.chat.checked ? health.chat.ok : health.configured}>
+                <span>Chat</span>
+                <strong>
+                  {health.chat.checked
+                    ? health.chat.ok
+                      ? `OK${health.chat.latencyMs === null ? "" : ` · ${health.chat.latencyMs}ms`}`
+                      : "Failed"
+                    : "Not checked"}
+                </strong>
+              </div>
+              <div data-ok={health.embeddings.supported}>
+                <span>Embeddings</span>
+                <strong>
+                  {health.embeddings.supported ? health.embeddings.model || "Supported" : "No"}
+                </strong>
+              </div>
+            </div>
           ) : null}
+
+          <div className="settings-field">
+            <span className="settings-label">Search all notes with AI</span>
+            <label className="settings-check">
+              <input
+                type="checkbox"
+                checked={config.semanticIndex}
+                onChange={(e) => void actions.setSemanticIndex(e.target.checked)}
+              />
+              <span>Build a semantic index so the assistant can search all notes by meaning</span>
+            </label>
+            <div className="settings-field-row">
+              <button
+                type="button"
+                className="settings-btn"
+                disabled={!embedStatus?.supported}
+                onClick={() => void actions.reindexVault()}
+              >
+                Reindex notes
+              </button>
+              {embedStatus ? (
+                <span className="settings-test">
+                  {embedStatus.supported
+                    ? `${embedStatus.indexed} / ${embedStatus.total} pages indexed`
+                    : "No embeddings API for this provider — AI search uses keyword search."}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="settings-field">
+            <span className="settings-label">Project folder access</span>
+            <label className="settings-check">
+              <input
+                type="checkbox"
+                checked={config.projectWrite}
+                onChange={(e) => void actions.setProjectWrite(e.target.checked)}
+              />
+              <span>Allow agents to edit files inside registered project folders</span>
+            </label>
+            <p className="settings-hint">
+              Agents can always inspect registered project trees. File writes stay blocked until
+              this is enabled.
+            </p>
+          </div>
+
+          <p className="settings-hint">
+            {preset.usesKey
+              ? "Your API key is stored in the macOS Keychain, never in a plain file."
+              : "Ollama runs entirely on your machine — start the server with `ollama serve`."}
+            {" The assistant's “Search my notes” toggle retrieves relevant pages either way."}
+          </p>
+
+          <div className="settings-field">
+            <span className="settings-label">MCP server</span>
+            <p className="settings-hint">
+              Let external AI apps search and read this notes folder. Add this to your MCP client
+              config:
+            </p>
+            {mcpConfig ? (
+              <pre className="settings-code">
+                {JSON.stringify(
+                  {
+                    mcpServers: {
+                      bethink: { command: mcpConfig.command, args: mcpConfig.args },
+                    },
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+            ) : null}
+            <button
+              type="button"
+              className="settings-btn"
+              onClick={() => void actions.copyMcpConfig()}
+            >
+              Copy config
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div className="settings-field">
-        <span className="settings-label">Project folder access</span>
-        <label className="settings-check">
-          <input
-            type="checkbox"
-            checked={config.projectWrite}
-            onChange={(e) => void actions.setProjectWrite(e.target.checked)}
-          />
-          <span>Allow agents to edit files inside registered project folders</span>
-        </label>
-        <p className="settings-hint">
-          Agents can always inspect registered project trees. File writes stay blocked until this is
-          enabled.
-        </p>
-      </div>
-
-      <p className="settings-hint">
-        {preset.usesKey
-          ? "Your API key is stored in the macOS Keychain, never in a plain file."
-          : "Ollama runs entirely on your machine — start the server with `ollama serve`."}
-        {" The assistant's “Search my vault” toggle retrieves relevant pages either way."}
-      </p>
-
-      <div className="settings-field">
-        <span className="settings-label">MCP server</span>
-        <p className="settings-hint">
-          Let Claude Desktop, Cursor, or Claude Code search and read this vault. Add this to your
-          MCP client config:
-        </p>
-        {mcpConfig ? (
-          <pre className="settings-code">
-            {JSON.stringify(
-              {
-                mcpServers: {
-                  bethink: { command: mcpConfig.command, args: mcpConfig.args },
-                },
-              },
-              null,
-              2,
-            )}
-          </pre>
-        ) : null}
-        <button type="button" className="settings-btn" onClick={() => void actions.copyMcpConfig()}>
-          Copy config
-        </button>
-      </div>
+      ) : null}
     </div>
   );
 };
@@ -390,7 +470,7 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
         ) : null}
 
         <div className="settings-field">
-          <span className="settings-label">Vault sync</span>
+          <span className="settings-label">Notes sync</span>
           <div className="settings-field-row">
             <button
               type="button"
@@ -433,7 +513,7 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
         </div>
 
         <p className="settings-hint">
-          Bethink keeps this vault's Markdown and attachments in two-way sync with your Stohr
+          Bethink keeps this notes folder's Markdown and attachments in two-way sync with your Stohr
           account — on launch, right after you connect, every couple of minutes, and whenever you
           press Sync now.
         </p>
@@ -587,8 +667,8 @@ const StohrTab = ({ status }: { status: StohrStatus | null }) => {
 
       <p className="settings-hint">
         Stohr is self-hostable cloud storage with a federation layer. Connect an account to keep
-        this vault's files synced to it both ways. Your token is stored in the macOS Keychain, never
-        in a plain file.
+        this notes folder's files synced to it both ways. Your token is stored in the macOS
+        Keychain, never in a plain file.
       </p>
     </div>
   );
@@ -649,7 +729,7 @@ const PluginsTab = () => {
     await pluginRuntime.setEnabled(plugin.manifest.id, next);
     if (next) {
       toast.info(`${plugin.manifest.name} enabled`, {
-        description: "Community plugins can read and modify your vault and access the network.",
+        description: "Community plugins can read and modify your notes and access the network.",
       });
     }
   };
@@ -673,7 +753,7 @@ const PluginsTab = () => {
     <div className="settings-section">
       <p className="settings-hint">
         Bethink loads community plugins from its plugins folder. Plugins run with full access to
-        your vault and the network — only enable ones you trust.
+        your notes and the network — only enable ones you trust.
       </p>
 
       <div className="plugin-market-head">

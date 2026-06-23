@@ -230,11 +230,17 @@ const migrateStore = (db: DB): void => {
       path TEXT NOT NULL,
       content TEXT NOT NULL,
       reason TEXT NOT NULL DEFAULT '',
+      reviewComment TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'pending',
       createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  try {
+    db.exec("ALTER TABLE projectWriteProposals ADD COLUMN reviewComment TEXT NOT NULL DEFAULT ''");
+  } catch {
+    // Existing vaults already have the column.
+  }
   db.exec(`
     CREATE TABLE IF NOT EXISTS kanbanCards (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

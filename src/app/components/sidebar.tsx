@@ -1,5 +1,6 @@
 import {
   Archive,
+  Bell,
   Bot,
   Calendar,
   ChevronDown,
@@ -297,8 +298,11 @@ export const Sidebar = () => {
     agents,
     channels,
     projects,
+    inbox,
   } = useApp();
   const tagTree = useMemo(() => buildTagTree(tags), [tags]);
+  const advancedCount = projects.length + agents.length + channels.length;
+  const unread = inbox.unreadRuns + inbox.unreadProposals;
 
   return (
     <aside className="sidebar">
@@ -429,22 +433,44 @@ export const Sidebar = () => {
       </div>
 
       <footer className="sidebar-foot">
+        <div className="foot-row">
+          <button type="button" className="foot-btn" onClick={() => void actions.createDaily()}>
+            <Calendar size={14} />
+            Daily note
+          </button>
+          <button
+            type="button"
+            className="foot-icon"
+            data-badge={unread > 0 ? unread : undefined}
+            title={unread > 0 ? `${unread} agent update(s)` : "Agent inbox"}
+            onClick={() => void actions.openInbox()}
+          >
+            <Bell size={15} />
+          </button>
+          <button
+            type="button"
+            className="foot-icon"
+            title="AI assistant (⌘J)"
+            onClick={() => actions.toggleAi()}
+          >
+            <Bot size={15} />
+          </button>
+          <button
+            type="button"
+            className="foot-icon"
+            title="Settings (⌘,)"
+            onClick={() => actions.openSettings()}
+          >
+            <Settings size={15} />
+          </button>
+        </div>
         <Section
-          label="Projects"
-          count={projects.length}
-          defaultOpen
-          action={
-            <button
-              type="button"
-              className="side-section-add"
-              title="Add project folder"
-              onClick={() => void actions.addProject()}
-            >
-              <Plus size={13} />
-            </button>
-          }
+          label="AI workflows"
+          count={advancedCount > 0 ? advancedCount : undefined}
+          defaultOpen={false}
         >
           <div className="side-agents">
+            <div className="side-subhead">Tools</div>
             <button
               type="button"
               className="side-agent-empty"
@@ -477,36 +503,6 @@ export const Sidebar = () => {
               <ListChecks size={13} />
               Kanban inbox
             </button>
-            {projects.length > 0 ? (
-              projects.map((project) => <ProjectItem key={project.slug} project={project} />)
-            ) : (
-              <button
-                type="button"
-                className="side-agent-empty"
-                onClick={() => void actions.addProject()}
-              >
-                <FolderOpen size={13} />
-                Add a project folder
-              </button>
-            )}
-          </div>
-        </Section>
-        <Section
-          label="Agents"
-          count={agents.length}
-          defaultOpen
-          action={
-            <button
-              type="button"
-              className="side-section-add"
-              title="Create agent"
-              onClick={() => actions.openAgentWizard()}
-            >
-              <Plus size={13} />
-            </button>
-          }
-        >
-          <div className="side-agents">
             <button
               type="button"
               className="side-agent-empty"
@@ -531,6 +527,36 @@ export const Sidebar = () => {
               <Upload size={13} />
               Import agents or channels
             </button>
+
+            <div className="side-subhead side-subhead-action">
+              <span>Projects</span>
+              <button
+                type="button"
+                title="Add project folder"
+                onClick={() => void actions.addProject()}
+              >
+                <Plus size={12} />
+              </button>
+            </div>
+            {projects.length > 0 ? (
+              projects.map((project) => <ProjectItem key={project.slug} project={project} />)
+            ) : (
+              <button
+                type="button"
+                className="side-agent-empty"
+                onClick={() => void actions.addProject()}
+              >
+                <FolderOpen size={13} />
+                Add a project folder
+              </button>
+            )}
+
+            <div className="side-subhead side-subhead-action">
+              <span>Agents</span>
+              <button type="button" title="Create agent" onClick={() => actions.openAgentWizard()}>
+                <Plus size={12} />
+              </button>
+            </div>
             {agents.length > 0 ? (
               agents.map((agent) => <AgentItem key={agent.slug} agent={agent} />)
             ) : (
@@ -543,32 +569,17 @@ export const Sidebar = () => {
                 Create your first agent
               </button>
             )}
-          </div>
-        </Section>
-        <Section
-          label="Channels"
-          count={channels.length}
-          defaultOpen
-          action={
-            <button
-              type="button"
-              className="side-section-add"
-              title="Create channel"
-              onClick={() => actions.openChannelWizard()}
-            >
-              <Plus size={13} />
-            </button>
-          }
-        >
-          <div className="side-agents">
-            <button
-              type="button"
-              className="side-agent-empty"
-              onClick={() => void actions.importAgents()}
-            >
-              <Upload size={13} />
-              Import channel bundle
-            </button>
+
+            <div className="side-subhead side-subhead-action">
+              <span>Channels</span>
+              <button
+                type="button"
+                title="Create channel"
+                onClick={() => actions.openChannelWizard()}
+              >
+                <Plus size={12} />
+              </button>
+            </div>
             {channels.length > 0 ? (
               channels.map((channel) => <ChannelItem key={channel.slug} channel={channel} />)
             ) : (
@@ -583,28 +594,6 @@ export const Sidebar = () => {
             )}
           </div>
         </Section>
-        <div className="foot-row">
-          <button type="button" className="foot-btn" onClick={() => void actions.createDaily()}>
-            <Calendar size={14} />
-            Daily note
-          </button>
-          <button
-            type="button"
-            className="foot-icon"
-            title="AI assistant (⌘J)"
-            onClick={() => actions.toggleAi()}
-          >
-            <Bot size={15} />
-          </button>
-          <button
-            type="button"
-            className="foot-icon"
-            title="Settings (⌘,)"
-            onClick={() => actions.openSettings()}
-          >
-            <Settings size={15} />
-          </button>
-        </div>
         {stats ? (
           <div className="foot-stats">
             <span>

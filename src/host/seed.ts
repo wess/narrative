@@ -7,37 +7,34 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { writeMarkdown } from "./vault/fileio.ts";
 
-const WELCOME = `Welcome to Bethink — your personal knowledge base. Write in pages,
-connect them with links, organise with tags, and watch the graph fill in.
-Your whole vault is just a folder of Markdown files on disk, so your notes
-stay portable, future-proof, and entirely yours.
+const WELCOME = `Welcome to Bethink. This is a simple place to write notes,
+connect them, and find them again later.
 
-## Start here
+Your notes are plain Markdown files in a normal folder on your computer. Bethink
+gives you a nicer writing surface, but the files stay yours.
 
-- Press **⌘N** for a new page, or **⌘K** to open the command palette.
-- Connect ideas with \`[[wiki links]]\` — try opening [[Ideas]].
-- Group thoughts with #tags like #welcome and #howto.
-- **⌘⇧G** opens the graph, **⌘⇧F** searches everything, **⌘D** opens today's daily note.
+## 1. Write a note
 
-## Markdown, everywhere
+Click the title above and rename this page. Then type below it.
 
-Write with **bold**, *italic*, ~~strikethrough~~ and \`inline code\`.
+- Use **⌘N** for a new note.
+- Use the **Daily note** button for today's running log.
+- Bethink saves as you write.
 
-- [ ] Capture a fleeting thought
-- [x] Link it to something you already know
-- [ ] Watch the graph fill in
+## 2. Link notes together
 
-> Every page is a real \`.md\` file — what you type is what's on disk.
+Type \`[[Ideas]]\` to link to the Ideas page. Links help one note point to
+another without forcing everything into folders.
 
-\`\`\`ts
-const knowledge = pages.map(connect);
-\`\`\`
+Try this: open [[Ideas]], add one sentence, then come back here.
 
-| Shortcut | Does |
-| --- | --- |
-| ⌘N | New page |
-| ⌘K | Command palette |
-| ⌘⇧G | Graph view |
+## 3. Search your notes
+
+Use the search box in the sidebar to find text across your notes. Search for
+\`idea\` after you edit the Ideas page.
+
+That is enough to start: write, link, search. The AI assistant, graph, tags,
+plugins, and workflows are there when you need more.
 `;
 
 const IDEAS = `A scratch space for things worth coming back to. Link freely —
@@ -51,7 +48,7 @@ The backlinks panel on the right shows everything that points here.
 
 const LIBRARIAN = `---
 name: Librarian
-description: Finds connections and surfaces related notes in your vault.
+description: Finds connections and surfaces related notes.
 icon: 📚
 tools:
   - vault.search
@@ -65,7 +62,7 @@ tools:
 ---
 You are the Librarian inside Bethink — the user's personal knowledge base.
 
-Your job is to find connections in their vault. Search before answering.
+Your job is to find connections in their notes. Search before answering.
 Read pages before recommending them. Always cite the page titles you used.
 
 When the user asks about a topic, fan out: search by keyword, look at
@@ -75,7 +72,7 @@ findings in plain prose; do not paste tool JSON into the final answer.
 
 const SCRIBE = `---
 name: Scribe
-description: Drafts and edits notes directly in your vault.
+description: Drafts and edits notes directly.
 icon: ✍️
 tools:
   - vault.search
@@ -97,7 +94,7 @@ vault.update for full rewrites. After you change a page, open it
 
 const RESEARCHER = `---
 name: Researcher
-description: Pulls together everything the vault has on a topic.
+description: Pulls together everything the notes have on a topic.
 icon: 🔬
 tools:
   - vault.search
@@ -108,7 +105,7 @@ tools:
   - vault.create
 ---
 You are the Researcher inside Bethink. Given a topic, gather everything
-the vault knows about it and synthesise a brief.
+the notes contain on it and synthesise a brief.
 
 Plan: search broadly first, read the most relevant pages, then write a
 concise brief. If the user asks, save it as a new page with vault.create.
@@ -127,11 +124,11 @@ concrete — capture the key claims and any decisions. No preamble.
 
 const CMD_LINKRELATED = `---
 name: Suggest related links
-description: Find pages in the vault that this page should link to.
+description: Find pages that this page should link to.
 icon: 🔗
 agent: librarian
 ---
-Look at the page I'm viewing and suggest 3-7 other pages in the vault it
+Look at the page I'm viewing and suggest 3-7 other pages it
 should link to (using [[Title]]). For each, say in one line why the link
 makes sense. Don't edit the page — just suggest.
 `;
@@ -149,7 +146,7 @@ bulleted list. If you find nothing, say so.
 
 const CMD_DAILYWRAP = `---
 name: Daily wrap-up
-description: Summarise what changed in the vault today.
+description: Summarise what changed in the notes today.
 icon: 🌙
 agent: researcher
 ---

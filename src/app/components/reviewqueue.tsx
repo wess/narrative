@@ -1,4 +1,5 @@
 import { Check, RefreshCw, X } from "lucide-react";
+import { useState } from "react";
 import { actions } from "../state/actions.ts";
 import { useApp } from "../state/store.ts";
 
@@ -15,6 +16,7 @@ const formatWhen = (iso: string): string => {
 
 export const ReviewQueue = () => {
   const { reviewQueueOpen, projectProposals, projects } = useApp();
+  const [comments, setComments] = useState<Record<number, string>>({});
   if (!reviewQueueOpen) return null;
 
   const projectName = (slug: string): string =>
@@ -60,6 +62,20 @@ export const ReviewQueue = () => {
                 </header>
                 {proposal.reason ? <p>{proposal.reason}</p> : null}
                 <pre>{(proposal.diff ?? proposal.content).slice(0, 2200)}</pre>
+                <label className="reviewqueue-comment">
+                  <span>Comment for the agent</span>
+                  <textarea
+                    value={comments[proposal.id] ?? ""}
+                    placeholder="Tell the agent what to change before trying again..."
+                    rows={3}
+                    onChange={(event) =>
+                      setComments((current) => ({
+                        ...current,
+                        [proposal.id]: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
                 <footer>
                   <button
                     type="button"
@@ -72,10 +88,12 @@ export const ReviewQueue = () => {
                   <button
                     type="button"
                     className="reviewqueue-reject"
-                    onClick={() => void actions.rejectProjectProposal(proposal.id)}
+                    onClick={() =>
+                      void actions.rejectProjectProposal(proposal.id, comments[proposal.id] ?? "")
+                    }
                   >
                     <X size={13} />
-                    Reject
+                    Send back
                   </button>
                 </footer>
               </article>

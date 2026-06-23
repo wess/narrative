@@ -1,10 +1,21 @@
 import { Plus, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flattenTree } from "../lib/tree.ts";
 import { actions } from "../state/actions.ts";
 import { useApp } from "../state/store.ts";
 
+type QuickItem = {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly icon: string;
+  readonly kind: string;
+  readonly search: string;
+  readonly action: () => void;
+};
+
 export const CommandPalette = () => {
-  const { commandPaletteOpen, commands, agents } = useApp();
+  const { commandPaletteOpen, commands, agents, channels, projects, tags, tree } = useApp();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -17,14 +28,102 @@ export const CommandPalette = () => {
     }
   }, [commandPaletteOpen]);
 
+  const items = useMemo<QuickItem[]>(() => {
+    const pages = flattenTree(tree)
+      .filter((node) => node.kind === "file")
+      .map<QuickItem>((node) => ({
+        id: `page-${node.id}`,
+        name: node.title || "Untitled",
+        description: "Open note",
+        icon: node.icon || "📄",
+        kind: "note",
+        search: `${node.title} note page`,
+        action: () => void actions.openPage(node.id),
+      }));
+    return [
+      ...commands.map<QuickItem>((command) => {
+        const agent = command.agent ? agents.find((item) => item.slug === command.agent) : null;
+        return {
+          id: `command-${command.slug}`,
+          name: command.name,
+          description: command.description || "Run assistant command",
+          icon: command.icon,
+          kind: agent ? `command · ${agent.name}` : "command",
+          search: `${command.name} ${command.description} ${command.slug} command assistant`,
+          action: () => void actions.runCommand(command.slug),
+        };
+      }),
+      ...pages,
+      ...agents.map<QuickItem>((agent) => ({
+        id: `agent-${agent.slug}`,
+        name: agent.name,
+        description: agent.description || "Chat with this agent",
+        icon: agent.icon,
+        kind: "agent",
+        search: `${agent.name} ${agent.description} ${agent.slug} agent assistant`,
+        action: () => {
+          actions.setAgent(agent.slug);
+          actions.openAi();
+          actions.openAgentProfile(agent.slug);
+        },
+      })),
+      ...channels.map<QuickItem>((channel) => ({
+        id: `channel-${channel.slug}`,
+        name: channel.name,
+        description: channel.description || "Open this agent channel",
+        icon: channel.icon || "#",
+        kind: "channel",
+        search: `${channel.name} ${channel.description} ${channel.slug} channel agents`,
+        action: () => {
+          actions.setChannel(channel.slug);
+          actions.openAi();
+          void actions.openChannelProfile(channel.slug);
+        },
+      })),
+      ...projects.map<QuickItem>((project) => ({
+        id: `project-${project.slug}`,
+        name: project.name,
+        description: project.path,
+        icon: "▣",
+        kind: "project",
+        search: `${project.name} ${project.path} ${project.slug} project files`,
+        action: () => void actions.openProjectInspector(project.slug),
+      })),
+      ...tags.map<QuickItem>((tag) => ({
+        id: `tag-${tag.tag}`,
+        name: `#${tag.tag}`,
+        description: `${tag.count} note${tag.count === 1 ? "" : "s"}`,
+        icon: "#",
+        kind: "tag",
+        search: `${tag.tag} tag notes`,
+        action: () => void actions.openTag(tag.tag),
+      })),
+      {
+        id: "inbox",
+        name: "Agent inbox",
+        description: "Review runs and proposed changes",
+        icon: "!",
+        kind: "activity",
+        search: "agent inbox notifications unread activity review",
+        action: () => void actions.openInbox(),
+      },
+      {
+        id: "settings-ai",
+        name: "AI settings",
+        description: "Choose local AI or an API key",
+        icon: "⚙",
+        kind: "settings",
+        search: "settings preferences ai provider model key",
+        action: () => actions.openSettings("ai"),
+      },
+    ];
+  }, [commands, agents, channels, projects, tags, tree]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return commands;
-    return commands.filter((c) => {
-      const hay = `${c.name} ${c.description} ${c.slug}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [query, commands]);
+    if (!q) return items;
+    return items.filter((item) => item.search.toLowerCase().includes(q));
+  }, [query, items]);
 
   useEffect(() => {
     if (selected >= filtered.length) setSelected(0);
@@ -33,9 +132,9 @@ export const CommandPalette = () => {
   if (!commandPaletteOpen) return null;
 
   const close = () => actions.setCommandPalette(false);
-  const run = (slug: string | null) => {
-    if (slug) void actions.runCommand(slug);
-    else close();
+  const run = (item: QuickItem | null) => {
+    close();
+    item?.action();
   };
 
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -51,7 +150,7 @@ export const CommandPalette = () => {
     } else if (e.key === "Enter") {
       e.preventDefault();
       const chosen = filtered[selected];
-      if (chosen) run(chosen.slug);
+      if (chosen) run(chosen);
     }
   };
 
@@ -72,7 +171,7 @@ export const CommandPalette = () => {
           <input
             ref={inputRef}
             className="cmdpal-input"
-            placeholder="Run a command…"
+            placeholder="Jump to notes, agents, projects, or commands…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKey}
@@ -80,33 +179,26 @@ export const CommandPalette = () => {
         </div>
         <ul className="cmdpal-list">
           {filtered.length === 0 ? (
-            <li className="cmdpal-empty">No matching commands.</li>
+            <li className="cmdpal-empty">No matching item.</li>
           ) : (
-            filtered.map((c, idx) => {
-              const agent = c.agent ? agents.find((a) => a.slug === c.agent) : null;
-              return (
-                <li key={c.slug}>
-                  <button
-                    type="button"
-                    className="cmdpal-item"
-                    data-active={idx === selected}
-                    onMouseEnter={() => setSelected(idx)}
-                    onClick={() => run(c.slug)}
-                  >
-                    <span className="cmdpal-icon">{c.icon}</span>
-                    <span className="cmdpal-text">
-                      <span className="cmdpal-name">{c.name}</span>
-                      {c.description ? <span className="cmdpal-desc">{c.description}</span> : null}
-                    </span>
-                    {agent ? (
-                      <span className="cmdpal-tag" title="Runs as this agent">
-                        {agent.icon} {agent.name}
-                      </span>
-                    ) : null}
-                  </button>
-                </li>
-              );
-            })
+            filtered.map((item, idx) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className="cmdpal-item"
+                  data-active={idx === selected}
+                  onMouseEnter={() => setSelected(idx)}
+                  onClick={() => run(item)}
+                >
+                  <span className="cmdpal-icon">{item.icon}</span>
+                  <span className="cmdpal-text">
+                    <span className="cmdpal-name">{item.name}</span>
+                    <span className="cmdpal-desc">{item.description}</span>
+                  </span>
+                  <span className="cmdpal-tag">{item.kind}</span>
+                </button>
+              </li>
+            ))
           )}
         </ul>
         <div className="cmdpal-foot">

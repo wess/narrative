@@ -329,9 +329,10 @@ export const projectProposals = defineChannel<void, ProjectWriteProposal[]>("pro
 export const projectProposalApprove = defineChannel<{ id: number }, ProjectWriteProposal[]>(
   "projects:proposalapprove",
 );
-export const projectProposalReject = defineChannel<{ id: number }, ProjectWriteProposal[]>(
-  "projects:proposalreject",
-);
+export const projectProposalReject = defineChannel<
+  { id: number; comment?: string },
+  ProjectWriteProposal[]
+>("projects:proposalreject");
 // Scaffolding helpers — create a starter file in `.narrative/agents/` or
 // `.narrative/commands/` and return the freshly-loaded definition.
 export const agentCreate = defineChannel<{ name: string }, AgentDef | null>("agents:create");
