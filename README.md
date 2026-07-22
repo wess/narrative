@@ -160,3 +160,5 @@ Bethink is built on two of its own libraries, vendored into the repo:
 ## License
 
 [Apache License 2.0](LICENSE) © 2026 Wess Cope
+
+♥ [Sponsor this project](https://github.com/sponsors/wess)
